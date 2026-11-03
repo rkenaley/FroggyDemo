@@ -6,14 +6,11 @@ A complete, self-contained 2D platformer engine built in Python with `pygame-ce`
 
 ## 🎮 How to Run
 
-1. Open PowerShell and navigate to the project directory:
-   ```powershell
-   cd c:\AGProj\FroggyDemo
-   ```
-2. Run the game:
-   ```powershell
-   py -3.12 froggy_engine.py
-   ```
+In PowerShell:
+```powershell
+cd c:\AGProj\FroggyDemo
+py -3.12 froggy_engine.py
+```
 
 ---
 
@@ -28,47 +25,42 @@ A complete, self-contained 2D platformer engine built in Python with `pygame-ce`
 | **Menu Navigation (Title / Pause)** | `UP` / `DOWN` (Select), `SPACE` / `ENTER` (Confirm) | D-Pad + `A` Button |
 | **Pause / Return to Title** | `ESCAPE` | — |
 | **Toggle Telemetry HUD** | `TAB` | — |
-| **Instant Warp to Boss Chamber** | `B` | — |
-| **Export Edited ASCII Map** | `P` | — |
+| **Instant Warp to Boss Chamber** | `B` (in Adventure mode) | — |
+| **Export Edited ASCII Map** | `P` (in Builder mode) | — |
 
 ---
 
-## 💡 Quick Explainer: Why Did You Die After 5 Hits?
+## 🌴 What's New in This Build
 
-1. **The 5-Heart Health Bar (`PLAYER_MAX_HP = 5`)**:
-   - Froggy starts with 5 health hearts (displayed in the top-left HUD).
-   - Colliding with any active enemy (like the Spiked Moss Beetle) or an enemy attack deals **1 Heart of damage**.
-   - Froggy is knocked backward and granted **65 frames (~1.1 seconds)** of blinking invulnerability ("i-frames") so you don't take multiple hits instantly.
-2. **How to Heal**:
-   - Hitting a Buzzfly (`F`) with the tongue or stunning a Moss Beetle (`E`) and then striking it with the tongue yanks it straight into Froggy's mouth.
-   - **Swallowing any bug restores +1 Heart** and immediately refreshes your mid-air Double Jump!
-3. **New Death & Respawn Screen**:
-   - When all 5 Hearts are depleted, a retro **GAME OVER** screen appears.
-   - Press **`SPACE` / `A` / `B`** to instantly respawn at the room entrance with full 5-heart health, or press **`ESC`** to return to the Title Screen.
+### 1. Buttery-Smooth Hysteresis Camera (Zero Whiplash & Zero Sticking)
+- **Deadzone Window**: Replaced the twitchy instant look-ahead with a dual-axis comfort window.
+  - Small adjustments, turning around in place, and normal platforming hops do **NOT** jerk or bounce the camera.
+  - When Froggy pushes against the forward edge of the window, the viewport glides forward with smooth exponential damping (LERP).
+  - Perfectly clamped to room boundaries so it never shows out-of-bounds void.
 
----
+### 2. Level 1 Tutorial Redesign ("FROGGY'S FIRST HOP")
+- Fixed the obstacle on Screen 2: the old wall has been replaced by a **48px-wide vertical chimney shaft**.
+- Pacing & flow:
+  1. **Hop & Run**: Low stone obstacle on flat ground.
+  2. **Double Jump**: 3-tile and 4-tile high ledges to practice mid-air boost.
+  3. **Combat & Eating**: Platform with an isolated Moss Beetle to practice throwing `R` (Spore Boomerang) to stun and `Y` (Tongue) to eat and heal +1 Heart.
+  4. **Chimney Wall Jump**: Slide down and kick back and forth between two walls to reach the high rooftop.
+  5. **Grapple Swing Chasm**: Overhead Gold Grapple Ring (`G`) to practice 8-way pendulum swings over a pit.
+  6. **Exit Door**: Glowing Door `A` linking to the rest of the Metroidvania castle!
 
-## 🌟 What's New in This Build
+### 3. Jamaican / Dub Chiptune Audio Synthesizer
+- A full 64-step loop (~9.3 seconds of structured music) synthesizing:
+  - **Walking Dub Bassline**: Warm, syncopated bass with sub-bass depth.
+  - **Offbeat Skank Chords**: The signature percussive reggae "chop" on the offbeats.
+  - **One-Drop Drums**: Low kick + resonant rimshot landing together on beat 3.
+  - **Island Froggy Melody**: Cheerful, whimsical lead with subtle pitch-bend vibrato.
+- High-speed vector synthesis runs in **under 0.3s** on launch with NumPy (and has a pure-Python fallback).
 
-### 1. Title Screen & State Machine
-- Authentic retro title screen with animated Froggy, pulsing cursor, and two main options:
-  - **`START GAME`**: Launches the curated Level 1 tutorial demo.
-  - **`CREATE LEVEL`**: Opens a clean sandbox chamber with all level-builder brushes ready.
-- In-game Pause menu (`ESCAPE`) to resume, return to title, or quit.
-
-### 2. Level 1 Tutorial Demo ("FROGGY'S FIRST HOP")
-A dedicated learning course designed for your nephew:
-- **Zone 1 (Run & Hop)**: Flat mossy floor with a 1-tile hop over a stone block.
-- **Zone 2 (Double Jump)**: A 3-tile high ledge requiring a mid-air double jump.
-- **Zone 3 (Combat & Eating)**: A platform with an isolated Moss Beetle to practice throwing `R` (Spore Boomerang) to stun and `Y` (Tongue) to yank, eat, and heal.
-- **Zone 4 (Wall Jumps)**: A vertical chimney to practice sliding down walls and kicking off them.
-- **Zone 5 (Grapple Swing)**: An overhead Gold Grapple Ring (`G`) to practice 8-way pendulum swings over a gap.
-- **Zone 6 (Exit Door)**: Glowing Door `A` that connects to the rest of the Metroidvania castle!
-
-### 3. Procedural Chiptune Audio Synthesizer (Zero External Files!)
-Generated in under 0.5s at startup directly in RAM using Python's built-in `wave` and `math` modules:
-- **14 Sound Effects**: Rising jumps, double jump chirps, wall jump pings, whip snaps, metallic grapple clinks, boomerang whirs, funny boing stuns, eating/health chimes, damage thuds, and menu blips.
-- **3 Multi-Track Music Themes**:
-  - **Title Fanfare**: Bouncy, heroic 16-bit intro theme.
-  - **Damp Caverns**: Atmospheric, rhythmic exploration theme with driving bassline and chiptune drums.
-  - **Boss Overdrive**: Fast, intense battle music for Emperor Mantis!
+### 4. Clean Mode Separation (No Builder Tools in Level 1)
+- **"START GAME" (Adventure Mode)**:
+  - Level 1 and all castle rooms are pristine, immersive platformer stages.
+  - Mouse builder highlight squares and painting prompts are completely hidden.
+  - Mouse clicks do not accidentally alter the level while playing.
+- **"CREATE LEVEL" (Builder Mode)**:
+  - Opens the dedicated **Sandbox Room**.
+  - All mouse painting brushes (`#`, `G`, `E`, `F`, `M`), tile eraser, cursor snap grid, and `P` export shortcuts are active.

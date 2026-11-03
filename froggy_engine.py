@@ -1,45 +1,49 @@
 """
 ===============================================================================
-FROGGY: 16-BIT METROIDVANIA TECH DEMO ENGINE (SOUND & LEVEL 1 EDITION)
+FROGGY: 16-BIT METROIDVANIA TECH DEMO ENGINE (JAMAICAN GROOVE & SMOOTH CAMERA)
 ===============================================================================
 A complete, self-contained 2D platformer engine inspired by Super Castlevania IV,
 Super Metroid, and classic 16-bit SNES titles.
 
-NEW FEATURES IN THIS BUILD:
-1. Title Screen & State Machine:
-   - Interactive Title Screen with "START GAME" and "CREATE LEVEL" options.
-   - In-Game Pause Menu (ESC key) and Game Over / Respawn screen.
-2. Level 1 Tutorial Demo ("FROGGY'S FIRST HOP"):
-   - Curated beginner-friendly course introducing:
-     - Hop & Run mechanics
-     - Double Jump high ledge
-     - Spore Stun & Tongue Swallow on a Moss Beetle (healing +1 Heart!)
-     - Vertical Wall-Jump chimney
-     - Castlevania IV Grapple Swing over a pit
-     - Exit Door connecting to the grand Metroidvania castle!
-3. Procedural Chiptune Audio Synthesizer (Zero External Files):
-   - Synthesizes 12 authentic 16-bit sound effects (jumps, whip snaps, grapple
-     clinks, crunch/eating gulps, hurt thuds, doors, menu blips).
-   - Generates 3 loopable multi-track chiptune music compositions:
-     - "Title Fanfare" (bouncy, heroic 16-bit intro)
-     - "Damp Caverns" (moody Castlevania/Metroid atmospheric theme)
-     - "Boss Overdrive" (intense battle music for Emperor Mantis)
-4. Health & Death System Explainer:
-   - Froggy has 5 Hearts (PLAYER_MAX_HP = 5).
-   - Colliding with active enemies or boss attacks deals 1 Heart of damage,
-     knocks Froggy back, and grants 65 frames of invulnerability (i-frames).
-   - Swallowing bugs with the tongue heals +1 Heart and resets Double Jump!
-   - When HP hits 0, a Game Over screen allows instant room respawn with full HP.
+NEW REFINEMENTS IN THIS BUILD:
+1. Buttery-Smooth Hysteresis Camera (Zero Whiplash & Zero Screen Sticking):
+   - Replaced twitchy instant look-ahead with a dual-axis Deadzone Window.
+   - Small steps, turning around in place, and normal platforming hops do NOT
+     jerk the camera.
+   - Pushing against the edge of the window smoothly glides the viewport forward
+     using cushioned exponential dampening (LERP).
+2. Level 1 Tutorial Redesign ("FROGGY'S FIRST HOP"):
+   - Replaced the impassable obstacle on Screen 2 with a properly spaced 48px
+     vertical chimney shaft (Mega Man X / Super Metroid style).
+   - Traversable path from start to finish:
+     - Hop & Run obstacle
+     - Double Jump ledge
+     - Combat & Swallow (Stun beetle with R, Eat with Y to heal +1 Heart)
+     - 2-Walled Chimney Wall-Jump
+     - Overhead Castlevania IV Grapple Swing over a pit
+     - Exit Door A into the grand Metroidvania castle!
+3. Upgraded Chiptune Audio Synthesizer (Jamaican / Dub Froggy Groove):
+   - Synthesizes an authentic 64-step reggae chiptune theme in RAM:
+     - Deep, syncopated walking dub bassline
+     - Upbeat percussive "skank" chords on the off-beats (the signature reggae chop)
+     - One-Drop drums (kick + rimshot landing together on beat 3)
+     - Whimsical island froggy melody with pitch-bend vibrato
+4. Clean Mode Separation (No Builder Tools in Level 1):
+   - In "START GAME" (Adventure Mode), mouse tile highlight boxes, brush prompts,
+     and accidental mouse painting are completely disabled for immersion.
+   - In "CREATE LEVEL" (Builder Mode), all live mouse painting brushes and export
+     shortcuts are fully active in the Sandbox Room.
 
 CONTROLS (Keyboard / SNES Controller):
 - D-Pad (8-Way Aim & Move) : Arrow Keys or W/A/S/D | Gamepad D-Pad / Left Stick
 - A or B Button (Jump)     : SPACE, Z, or K        | Gamepad A / B
 - Y Button (8-Way Tongue)  : X or J                | Gamepad X / Y
 - R Button (Spore Weapon)  : C, U, or Left Shift   | Gamepad R1
-- Toggle HUD / Telemetry   : TAB
+- Menu Navigation          : UP / DOWN to select   | SPACE / A / ENTER to confirm
 - Pause / Return to Menu   : ESCAPE
-- Instant Boss Warp        : B (during gameplay)
-- Export Level ASCII       : P (during gameplay)
+- Toggle HUD Telemetry     : TAB
+- Warp to Boss Chamber     : B (in Adventure mode)
+- Export Room ASCII        : P (in Builder mode)
 ===============================================================================
 """
 
@@ -51,17 +55,23 @@ import sys
 import wave
 import pygame
 
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
 # =============================================================================
 # 1. GLOBAL ENGINE CONSTANTS & TUNING PARAMETERS
 # =============================================================================
 
 TILE_SIZE = 16
 
-# Retro canvas: 480x270 internal widescreen SNES pixels
+# Low-res retro canvas: 480x270 widescreen pixels (authentic 16:9 SNES resolution)
 INTERNAL_WIDTH = 480
 INTERNAL_HEIGHT = 270
 
-# Scaled desktop window: 1440x810
+# Scaled display window: 1440x810
 WINDOW_SCALE = 3
 WINDOW_WIDTH = INTERNAL_WIDTH * WINDOW_SCALE
 WINDOW_HEIGHT = INTERNAL_HEIGHT * WINDOW_SCALE
@@ -97,7 +107,7 @@ SWING_PUMP_FORCE = 0.0022
 SWING_REEL_SPEED = 1.5
 SWING_MIN_LENGTH = 28.0
 
-# --- Player & Combat Constants ---
+# --- Health & Combat Constants ---
 # Why 5 hits? Froggy starts with 5 health hearts. Every time he touches an
 # active enemy or hazard, he loses 1 Heart, gets knocked back, and receives
 # 65 frames (~1.1 seconds) of blinking invulnerability frames ("i-frames").
@@ -111,7 +121,7 @@ BOSS_WEAK_EXPOSED_FRAMES = 210
 TRANSITION_FADE_SPEED = 18
 DOOR_COOLDOWN_FRAMES = 24
 
-# --- Color Palette (16-Bit RGB Tuples) ---
+# --- Color Palette (16-Bit SNES Inspired RGB Tuples) ---
 COLOR_BG_GRID = (30, 36, 64)
 COLOR_TONGUE_PINK = (242, 107, 148)
 COLOR_TONGUE_TIP = (255, 168, 196)
@@ -125,14 +135,14 @@ COLOR_BOSS_GOLD = (255, 215, 70)
 
 
 # =============================================================================
-# 2. PROCEDURAL RETRO AUDIO & MUSIC SYNTHESIZER
+# 2. PROCEDURAL CHIPTUNE AUDIO SYNTHESIZER (JAMAICAN REGGAE GROOVE)
 # =============================================================================
 
 class RetroAudioEngine:
     """
-    Synthesizes authentic 16-bit SNES sound effects and loopable background music
-    directly into RAM using Python's standard library wave and math modules.
-    No audio files or external downloads needed!
+    Synthesizes 16-bit SNES sound effects and loopable background music in RAM.
+    Features an authentic Jamaican Dub / Reggae chiptune groove with deep walking
+    bass, offbeat skank chords, one-drop drums, and a cheerful froggy lead!
     """
 
     SAMPLE_RATE = 44100
@@ -146,21 +156,21 @@ class RetroAudioEngine:
             # Channel 0 is reserved strictly for continuous looping background music
             self.music_channel = pygame.mixer.Channel(0)
             self.music_channel.set_volume(0.48)
-            print("[Audio Engine] Synthesizing chiptune sound effects & music...")
+            print("[Audio Engine] Synthesizing Jamaican Froggy groove & retro sound effects...")
             self.sfx = self._build_all_sfx()
             self.music_tracks = self._build_all_music()
             self.current_track_name = None
-            print("[Audio Engine] Audio synthesis complete!")
+            print("[Audio Engine] Synthesis complete!")
         except Exception as err:
             print(f"[Audio Engine] Notice: Audio device unavailable ({err}). Running in silent mode.")
 
     @classmethod
     def _create_wav_sound(cls, samples):
-        """Converts an array of float samples [-1.0, 1.0] into a pygame.mixer.Sound."""
+        """Converts float samples [-1.0, 1.0] into a pygame.mixer.Sound."""
         buf = io.BytesIO()
         wav_file = wave.open(buf, 'wb')
-        wav_file.setnchannels(1)  # Mono for SFX
-        wav_file.setsampwidth(2)  # 16-bit PCM
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
         wav_file.setframerate(cls.SAMPLE_RATE)
         data = bytearray()
         for s in samples:
@@ -175,7 +185,7 @@ class RetroAudioEngine:
         sr = self.SAMPLE_RATE
         sfx = {}
 
-        # 1. Jump: Rising frequency slide (160 Hz -> 480 Hz)
+        # 1. Jump: Rising slide (160 Hz -> 480 Hz)
         n = int(sr * 0.12)
         samples = []
         for i in range(n):
@@ -323,83 +333,207 @@ class RetroAudioEngine:
 
         return sfx
 
-    def _build_chiptune_loop(self, bpm, pattern):
+    def _build_jamaican_track(self, bpm, pattern):
         """
-        Builds a multi-track looping chiptune track.
-        pattern: list of tuples (bass_freq, lead_freq, drum_type)
-        drum_type: 'k' = kick, 's' = snare, 'h' = hi-hat, '.' = rest
+        Synthesizes a multi-layered Jamaican Dub / Reggae chiptune loop.
+        Fast numpy path when available, with pure-python fallback.
         """
         sr = self.SAMPLE_RATE
-        step_dur = 60.0 / (bpm * 4.0)  # 16th note step duration
-        samples = []
+        step_dur = 60.0 / (bpm * 4.0)
 
-        for b_freq, l_freq, drum in pattern:
-            n_step = int(sr * step_dur)
-            for i in range(n_step):
-                t = i / sr
-                s = 0.0
+        if HAS_NUMPY:
+            num_steps = len(pattern)
+            step_samples = int(sr * step_dur)
+            total_samples = num_steps * step_samples
+            out = np.zeros(total_samples, dtype=np.float32)
+            t_step = np.linspace(0, step_dur, step_samples, endpoint=False)
 
-                # 1. Bass Track (Smooth Triangle Wave)
+            for i, (b_freq, (sk1, sk2), l_freq, drum) in enumerate(pattern):
+                start = i * step_samples
+                end = start + step_samples
+                s = np.zeros(step_samples, dtype=np.float32)
+
+                # 1. Warm Dub Bass (Triangle + Sub-Bass Sine)
                 if b_freq > 0:
-                    p = (b_freq * t) % 1.0
-                    tri = 4.0 * abs(p - 0.5) - 1.0
-                    s += tri * 0.32 * max(0.0, 1.0 - t / step_dur)
+                    phase = (b_freq * t_step) % 1.0
+                    tri = 4.0 * np.abs(phase - 0.5) - 1.0
+                    sub = np.sin(2.0 * np.pi * b_freq * t_step) * 0.25
+                    env_b = np.maximum(0.0, 1.0 - t_step / step_dur)
+                    s += (tri + sub) * 0.35 * env_b
 
-                # 2. Lead Melody Track (25% Duty Pulse Wave)
+                # 2. Reggae Skank Chords (Short, percussive offbeat pulse chops)
+                if sk1 > 0:
+                    p1 = (sk1 * t_step) % 1.0
+                    p2 = (sk2 * t_step) % 1.0
+                    sq1 = np.where(p1 < 0.35, 1.0, -1.0)
+                    sq2 = np.where(p2 < 0.35, 1.0, -1.0)
+                    env_sk = np.maximum(0.0, 1.0 - t_step * 16.0)
+                    s += (sq1 + sq2) * 0.12 * env_sk
+
+                # 3. Whimsical Island Froggy Lead (Pulse wave with vibrato)
                 if l_freq > 0:
-                    p = (l_freq * t) % 1.0
-                    sq = 1.0 if p < 0.28 else -1.0
-                    s += sq * 0.20 * max(0.0, 1.0 - t * 2.2)
+                    vib = np.sin(2.0 * np.pi * 5.5 * t_step) * (l_freq * 0.02)
+                    mf = l_freq + vib
+                    p_lead = (mf * t_step) % 1.0
+                    pulse = np.where(p_lead < 0.25, 1.0, -1.0)
+                    env_l = np.maximum(0.0, 1.0 - t_step * 2.2)
+                    s += pulse * 0.18 * env_l
 
-                # 3. Chiptune Percussion Track
-                if drum == 'k':  # Low sine pitch-drop Kick
-                    s += math.sin(2.0 * math.pi * max(40.0, 140.0 - t * 750.0) * t) * 0.42 * max(0.0, 1.0 - t * 16.0)
-                elif drum == 's':  # White noise Snare
-                    s += (random.random() * 2.0 - 1.0) * 0.22 * max(0.0, 1.0 - t * 14.0)
-                elif drum == 'h':  # Sharp noise Hi-Hat
-                    s += (random.random() * 2.0 - 1.0) * 0.08 * max(0.0, 1.0 - t * 40.0)
+                # 4. One-Drop Drums
+                if drum in ('k', 'd'):
+                    freq_k = np.maximum(35.0, 130.0 - t_step * 650.0)
+                    kick = np.sin(2.0 * np.pi * freq_k * t_step) * 0.40 * np.maximum(0.0, 1.0 - t_step * 14.0)
+                    s += kick
+                if drum in ('s', 'd', 'f'):
+                    noise = (np.random.rand(step_samples) * 2.0 - 1.0) * 0.22 * np.maximum(0.0, 1.0 - t_step * 15.0)
+                    rim = np.sin(2.0 * np.pi * 220.0 * t_step) * 0.18 * np.maximum(0.0, 1.0 - t_step * 20.0)
+                    s += noise + rim
+                if drum == 'h':
+                    hat = (np.random.rand(step_samples) * 2.0 - 1.0) * 0.06 * np.maximum(0.0, 1.0 - t_step * 38.0)
+                    s += hat
 
-                samples.append(s)
+                out[start:end] = s
 
-        return self._create_wav_sound(samples)
+            out = np.clip(out, -0.95, 0.95)
+            pcm16 = (out * 32767).astype(np.int16)
+            stereo = np.repeat(pcm16[:, np.newaxis], 2, axis=1)
+            return pygame.sndarray.make_sound(stereo)
+
+        else:
+            # Pure Python Fallback
+            samples = []
+            for b_freq, (sk1, sk2), l_freq, drum in pattern:
+                n_step = int(sr * step_dur)
+                for i in range(n_step):
+                    t = i / sr
+                    s = 0.0
+                    if b_freq > 0:
+                        p = (b_freq * t) % 1.0
+                        tri = 4.0 * abs(p - 0.5) - 1.0
+                        s += tri * 0.35 * max(0.0, 1.0 - t / step_dur)
+                    if sk1 > 0:
+                        p1 = (sk1 * t) % 1.0
+                        sq1 = 1.0 if p1 < 0.35 else -1.0
+                        s += sq1 * 0.12 * max(0.0, 1.0 - t * 16.0)
+                    if l_freq > 0:
+                        p = (l_freq * t) % 1.0
+                        pulse = 1.0 if p < 0.25 else -1.0
+                        s += pulse * 0.18 * max(0.0, 1.0 - t * 2.2)
+                    if drum in ('k', 'd'):
+                        s += math.sin(2.0 * math.pi * max(35.0, 130.0 - t * 650.0) * t) * 0.40 * max(0.0, 1.0 - t * 14.0)
+                    if drum in ('s', 'd', 'f'):
+                        s += (random.random() * 2.0 - 1.0) * 0.22 * max(0.0, 1.0 - t * 15.0)
+                    if drum == 'h':
+                        s += (random.random() * 2.0 - 1.0) * 0.06 * max(0.0, 1.0 - t * 38.0)
+                    samples.append(s)
+            return self._create_wav_sound(samples)
 
     def _build_all_music(self):
-        # 1. Title Fanfare Theme (Heroic, Bouncy C Major, 126 BPM)
-        pat_title = [
-            (130.8, 523.2, 'k'), (130.8, 659.2, 'h'), (196.0, 784.0, 's'), (196.0, 659.2, 'h'),
-            (164.8, 659.2, 'k'), (164.8, 784.0, 'h'), (196.0, 1046.5, 's'), (196.0, 784.0, 'h'),
-            (146.8, 587.3, 'k'), (146.8, 698.4, 'h'), (220.0, 880.0, 's'), (220.0, 698.4, 'h'),
-            (196.0, 784.0, 'k'), (196.0, 880.0, 'h'), (246.9, 987.7, 's'), (246.9, 1046.5, 'h'),
+        # 64-step (4 bars) Jamaican Froggy Groove (G Major / Dub Reggae, 104 BPM)
+        pattern_jamaica = [
+            # BAR 1: G Major
+            (0,     (0,0),         392.0, '.'),
+            (98.0,  (0,0),         0,     'h'),
+            (0,     (246.9,392.0), 329.6, 'h'), # Skank
+            (98.0,  (0,0),         0,     'h'),
+            (0,     (0,0),         293.7, 'h'),
+            (146.8, (0,0),         0,     'h'),
+            (0,     (246.9,392.0), 392.0, 'h'), # Skank
+            (0,     (0,0),         0,     'h'),
+            (98.0,  (0,0),         440.0, 'd'), # One-Drop (Kick + Snare on 3!)
+            (0,     (0,0),         0,     'h'),
+            (0,     (246.9,392.0), 392.0, 'h'), # Skank
+            (123.5, (0,0),         0,     'h'),
+            (146.8, (0,0),         329.6, 'h'),
+            (0,     (0,0),         0,     'h'),
+            (0,     (246.9,392.0), 293.7, 'h'), # Skank
+            (164.8, (0,0),         0,     'f'),
+
+            # BAR 2: C Major (Sweet Island Lift)
+            (0,     (0,0),         261.6, '.'),
+            (130.8, (0,0),         0,     'h'),
+            (0,     (261.6,329.6), 329.6, 'h'), # Skank
+            (130.8, (0,0),         0,     'h'),
+            (0,     (0,0),         392.0, 'h'),
+            (164.8, (0,0),         0,     'h'),
+            (0,     (261.6,329.6), 523.2, 'h'), # Skank
+            (0,     (0,0),         0,     'h'),
+            (130.8, (0,0),         392.0, 'd'), # One-Drop
+            (0,     (0,0),         0,     'h'),
+            (0,     (261.6,329.6), 329.6, 'h'), # Skank
+            (146.8, (0,0),         0,     'h'),
+            (164.8, (0,0),         261.6, 'h'),
+            (0,     (0,0),         0,     'h'),
+            (0,     (261.6,329.6), 293.7, 'h'), # Skank
+            (146.8, (0,0),         0,     'f'),
+
+            # BAR 3: E Minor / D Major (Walking Dub Bass)
+            (0,     (0,0),         329.6, '.'),
+            (82.4,  (0,0),         0,     'h'),
+            (0,     (196.0,329.6), 392.0, 'h'), # Skank
+            (82.4,  (0,0),         0,     'h'),
+            (0,     (0,0),         440.0, 'h'),
+            (123.5, (0,0),         0,     'h'),
+            (0,     (196.0,329.6), 493.8, 'h'), # Skank
+            (0,     (0,0),         0,     'h'),
+            (146.8, (0,0),         392.0, 'd'), # One-Drop
+            (0,     (0,0),         0,     'h'),
+            (0,     (220.0,369.9), 329.6, 'h'), # Skank
+            (110.0, (0,0),         0,     'h'),
+            (146.8, (0,0),         293.7, 'h'),
+            (0,     (0,0),         0,     'h'),
+            (0,     (220.0,369.9), 246.9, 'h'), # Skank
+            (123.5, (0,0),         0,     'f'),
+
+            # BAR 4: D7 Turnaround (Playful Froggy Crescendo)
+            (0,     (0,0),         293.7, '.'),
+            (146.8, (0,0),         0,     'h'),
+            (0,     (220.0,293.7), 369.9, 'h'), # Skank
+            (146.8, (0,0),         0,     'h'),
+            (0,     (0,0),         440.0, 'h'),
+            (110.0, (0,0),         0,     'h'),
+            (0,     (220.0,293.7), 493.8, 'h'), # Skank
+            (0,     (0,0),         0,     'h'),
+            (146.8, (0,0),         587.3, 'd'), # One-Drop
+            (0,     (0,0),         0,     'h'),
+            (0,     (220.0,293.7), 493.8, 'h'), # Skank
+            (164.8, (0,0),         0,     'h'),
+            (146.8, (0,0),         440.0, 'h'),
+            (130.8, (0,0),         0,     's'),
+            (123.5, (220.0,293.7), 392.0, 's'),
+            (110.0, (0,0),         369.9, 'f'),
         ]
 
-        # 2. Level 1 & Metroidvania Exploration Theme (Moody A Minor / Dorian, 116 BPM)
-        pat_level = [
-            (110.0, 440.0, 'k'), (110.0, 0.0,   'h'), (110.0, 523.2, 's'), (110.0, 440.0, 'h'),
-            (130.8, 659.2, 'k'), (130.8, 0.0,   'h'), (130.8, 587.3, 's'), (130.8, 523.2, 'h'),
-            (98.0,  392.0, 'k'), (98.0,  0.0,   'h'), (98.0,  440.0, 's'), (98.0,  392.0, 'h'),
-            (123.5, 493.8, 'k'), (123.5, 0.0,   'h'), (123.5, 440.0, 's'), (123.5, 392.0, 'h'),
-            (110.0, 523.2, 'k'), (110.0, 659.2, 'h'), (110.0, 784.0, 's'), (110.0, 659.2, 'h'),
-            (146.8, 587.3, 'k'), (146.8, 698.4, 'h'), (146.8, 880.0, 's'), (146.8, 698.4, 'h'),
-            (130.8, 523.2, 'k'), (130.8, 659.2, 'h'), (130.8, 784.0, 's'), (130.8, 659.2, 'h'),
-            (82.4,  329.6, 'k'), (82.4,  392.0, 'h'), (82.4,  440.0, 's'), (82.4,  493.8, 'h'),
+        # Fast battle theme for Emperor Mantis (136 BPM)
+        pattern_boss = [
+            (82.4,  (164.8,246.9), 659.2, 'k'),
+            (82.4,  (0,0),         0,     'h'),
+            (82.4,  (164.8,246.9), 659.2, 's'),
+            (82.4,  (0,0),         0,     'h'),
+            (87.3,  (174.6,261.6), 698.4, 'k'),
+            (87.3,  (0,0),         0,     'h'),
+            (87.3,  (174.6,261.6), 698.4, 's'),
+            (87.3,  (0,0),         0,     'h'),
+            (98.0,  (196.0,293.7), 784.0, 'k'),
+            (98.0,  (0,0),         0,     'h'),
+            (98.0,  (196.0,293.7), 784.0, 's'),
+            (98.0,  (0,0),         0,     'h'),
+            (110.0, (220.0,329.6), 880.0, 'k'),
+            (110.0, (0,0),         0,     'h'),
+            (123.5, (246.9,369.9), 987.7, 's'),
+            (123.5, (0,0),         1046.5,'f'),
         ]
 
-        # 3. Emperor Mantis Boss Battle Theme (High-Intensity E Minor, 138 BPM)
-        pat_boss = [
-            (82.4,  329.6, 'k'), (82.4,  659.2, 'h'), (82.4,  329.6, 's'), (82.4,  659.2, 'h'),
-            (87.3,  349.2, 'k'), (87.3,  698.4, 'h'), (87.3,  349.2, 's'), (87.3,  698.4, 'h'),
-            (98.0,  392.0, 'k'), (98.0,  784.0, 'h'), (98.0,  392.0, 's'), (98.0,  784.0, 'h'),
-            (110.0, 440.0, 'k'), (110.0, 880.0, 'h'), (123.5, 987.7, 's'), (123.5, 1046.5, 'h'),
-        ]
+        jamaican_music = self._build_jamaican_track(104, pattern_jamaica)
+        boss_music = self._build_jamaican_track(136, pattern_boss)
 
         return {
-            'title': self._build_chiptune_loop(126, pat_title),
-            'level': self._build_chiptune_loop(116, pat_level),
-            'boss': self._build_chiptune_loop(138, pat_boss),
+            'title': jamaican_music,
+            'level': jamaican_music,
+            'boss': boss_music,
         }
 
     def play_sfx(self, name):
-        """Plays a one-shot sound effect on any free channel."""
         if not self.enabled:
             return
         snd = self.sfx.get(name)
@@ -407,7 +541,6 @@ class RetroAudioEngine:
             snd.play()
 
     def play_music(self, track_name):
-        """Plays a continuous looping background music track on Channel 0."""
         if not self.enabled or track_name == self.current_track_name:
             return
         track = self.music_tracks.get(track_name)
@@ -426,11 +559,6 @@ class RetroAudioEngine:
 # =============================================================================
 
 class SpriteSheetGenerator:
-    """
-    Renders 16x16 and 32x32 pixel-art sprites directly into RAM from text grids.
-    Each character maps to an RGB color in PALETTE.
-    """
-
     PALETTE = {
         '.': None,
         'G': (76, 187, 73),
@@ -854,7 +982,7 @@ class SpriteSheetGenerator:
 
 WORLD_BLUEPRINTS = {
     # -------------------------------------------------------------------------
-    # LEVEL 1: FROGGY'S FIRST HOP (The Demo & Tutorial Level)
+    # LEVEL 1: FROGGY'S FIRST HOP (100% Traversable Paced Tutorial Demo!)
     # -------------------------------------------------------------------------
     "level_1": {
         "title": "LEVEL 1: FROGGY'S FIRST HOP",
@@ -869,23 +997,23 @@ WORLD_BLUEPRINTS = {
             }
         },
         "ascii_grid": [
-            "################################################################################",
-            "#..............................................................................#",
-            "#..............................................G...............................#",
-            "#..............................................................................#",
-            "#..............................................................................#",
-            "#...................................................######.....................#",
-            "#......................F..................###.......#....#.....................#",
-            "#.........................................#.........#....#.....................#",
-            "#..................##########.............#.........#....#.....................#",
-            "#.........................................#.........#....#.....................#",
-            "#...............................E.........#.........#....#.....................#",
-            "#...........................#########.....#.........#....#.....................A",
-            "#....S....................................#.........#....#.....................A",
-            "#..######........###......................#.........#....#......######.........A",
-            "#.........................................#.........#..........................A",
-            "#..........##.............................#.........#..........................A",
-            "################################################################################",
+            "################################################################################", # 0
+            "#..............................................................................#", # 1
+            "#..............................................................G...............#", # 2
+            "#..............................................................................#", # 3
+            "#...............................................#...#.######...................#", # 4 (Chimney + Roof)
+            "#...............................................#...#..........................#", # 5
+            "#...............................................#...#..........................#", # 6
+            "#...............................................#...#..........................#", # 7
+            "#.......................#####...................#...#...................######.#", # 8 (Double Jump Ledge)
+            "#.............................##############....#...#..........................#", # 9 (Combat Platform)
+            "#....................................E..........#...#..........................#", # 10 (Moss Beetle Patrol)
+            "#...............................................#...#..........................#", # 11
+            "#................####...........................#...#..........................#", # 12 (First Step)
+            "#....S..............................................#..........................A", # 13 (Open Chimney Entry)
+            "#..######...##......................................#..........................A", # 14 (Hop Obstacle)
+            "#..............................................................................A", # 15 (Smooth Floor)
+            "############################################################...#################", # 16 (Chasm Hazard Pit)
         ],
     },
 
@@ -1656,7 +1784,6 @@ class TileMapRoom:
                 elif char in ('E', 'F', 'M'):
                     self.enemy_spawns.append((char, world_x, world_y))
 
-                # Check multi-character door prefixes like 'A' or 'A_IN'
                 matched_door = None
                 for d_id in self.door_configs:
                     if self.grid[row][col] == d_id[0]:
@@ -2030,7 +2157,6 @@ class FroggyPlayer:
         self.vy = 0.0
         self.facing_right = True
 
-        # Health & Combat
         self.hp = PLAYER_MAX_HP
         self.invuln_timer = 0
         self.eaten_count = 0
@@ -2088,7 +2214,6 @@ class FroggyPlayer:
         if self.invuln_timer > 0:
             self.invuln_timer -= 1
 
-        # 1. Spore Boomerang Subweapon
         if controller.just_pressed["R"] and len(self.projectiles) < 2:
             _, (ux, uy) = controller.get_dpad_vector(self.facing_right)
             self.projectiles.append(SporeBoomerang(self.center_x, self.center_y, ux, uy))
@@ -2099,18 +2224,15 @@ class FroggyPlayer:
             proj.update(room, audio)
         self.projectiles = [p for p in self.projectiles if p.alive]
 
-        # 2. Movement & Tongue Updates
         if self.tongue_state == "SWINGING":
             self._update_pendulum_swing(controller, room, audio)
         else:
             self._update_tongue_strike_and_yank(controller, room, audio)
             self._update_standard_physics(controller, room, audio)
 
-        # 3. Collision Checks against Enemies and Boss Projectiles
         self._check_damage_collisions(room, audio)
         self._update_animation_state()
 
-        # 4. Metroidvania Door Portals
         if self.door_cooldown == 0:
             touched_door = room.get_touched_door(self.rect)
             if touched_door is not None:
@@ -2134,7 +2256,6 @@ class FroggyPlayer:
             tip_x = self.center_x + self.tongue_dir_x * self.tongue_length
             tip_y = self.center_y + self.tongue_dir_y * self.tongue_length
 
-            # Boss Weak Point Check
             boss = room.get_active_boss()
             if boss and boss.alive and boss.rect.inflate(8, 8).collidepoint(tip_x, tip_y):
                 if boss.state == "WEAK_EXPOSED":
@@ -2152,7 +2273,6 @@ class FroggyPlayer:
                         audio.play_sfx("latch")
                     return
 
-            # Regular Enemies Check ('E' and 'F')
             hit_enemy = room.get_enemy_at_point(tip_x, tip_y)
             if hit_enemy is not None:
                 if hit_enemy.can_yank_immediately or hit_enemy.state == "STUNNED":
@@ -2170,7 +2290,6 @@ class FroggyPlayer:
                         audio.play_sfx("stun")
                 return
 
-            # Gold Grapple Ring ('G')
             hit_anchor = room.get_grapple_node_at(tip_x, tip_y)
             if hit_anchor is not None:
                 self._attach_to_grapple(hit_anchor)
@@ -2178,7 +2297,6 @@ class FroggyPlayer:
                     audio.play_sfx("latch")
                 return
 
-            # Solid Wall
             if room.is_point_inside_solid(tip_x, tip_y):
                 self.tongue_state = "HOLDING"
                 self.tongue_hold_timer = TONGUE_HOLD_FRAMES // 2
@@ -2244,7 +2362,6 @@ class FroggyPlayer:
                 return
 
     def _take_damage(self, push_from_x, room, audio=None):
-        # Subtract 1 heart of damage!
         self.hp -= 1
         self.invuln_timer = PLAYER_INVULN_FRAMES
         push_dir = -1.0 if self.center_x < push_from_x else 1.0
@@ -2469,30 +2586,60 @@ class FroggyPlayer:
 
 
 # =============================================================================
-# 11. CAMERA, HUD, MINIMAP & BOSS HEALTH BAR
+# 11. SMOOTH HYSTERESIS CAMERA & HUD
 # =============================================================================
 
-class Camera:
+class SmoothCamera:
+    """
+    Smooth platformer camera with dual-axis Hysteresis (Deadzone Window).
+    Eliminates camera whiplash when turning around and vertical bounce when hopping!
+    """
     def __init__(self, world_width, world_height):
         self.x = 0.0
         self.y = 0.0
         self.set_bounds(world_width, world_height)
+        # Dimensions of the inner deadzone window
+        self.deadzone_w = 54.0
+        self.deadzone_h = 36.0
 
     def set_bounds(self, world_width, world_height):
         self.world_width = world_width
         self.world_height = world_height
 
     def snap_to(self, player):
+        """Snaps directly to player without damping (used on room change/warp)."""
         self.x = player.center_x - (INTERNAL_WIDTH * 0.5)
         self.y = player.center_y - (INTERNAL_HEIGHT * 0.55)
         self._clamp()
 
     def update(self, player):
-        look_ahead = 28.0 if player.facing_right else -28.0
-        target_x = player.center_x + look_ahead - (INTERNAL_WIDTH * 0.5)
-        target_y = player.center_y - (INTERNAL_HEIGHT * 0.55)
-        self.x += (target_x - self.x) * 0.12
-        self.y += (target_y - self.y) * 0.12
+        # Center of the current camera view
+        center_x = self.x + (INTERNAL_WIDTH * 0.5)
+        center_y = self.y + (INTERNAL_HEIGHT * 0.55)
+
+        # 1. Horizontal Hysteresis (Deadzone)
+        dx = player.center_x - center_x
+        half_w = self.deadzone_w * 0.5
+        if dx > half_w:
+            target_x = self.x + (dx - half_w)
+        elif dx < -half_w:
+            target_x = self.x + (dx + half_w)
+        else:
+            target_x = self.x
+
+        # 2. Vertical Hysteresis (Prevents camera jitter on hops)
+        dy = player.center_y - center_y
+        half_h = self.deadzone_h * 0.5
+        if dy > half_h:
+            target_y = self.y + (dy - half_h)
+        elif dy < -half_h:
+            target_y = self.y + (dy + half_h)
+        else:
+            target_y = self.y
+
+        # 3. Cushioned LERP Smoothing
+        self.x += (target_x - self.x) * 0.08
+        self.y += (target_y - self.y) * 0.08
         self._clamp()
 
     def _clamp(self):
@@ -2502,15 +2649,23 @@ class Camera:
         self.y = max(0.0, min(max_y, self.y))
 
 
-def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_world_pos, controller):
-    mx_world, my_world = mouse_world_pos
-    col = int(mx_world // TILE_SIZE)
-    row = int(my_world // TILE_SIZE)
-    cursor_sx = int(col * TILE_SIZE - camera.x)
-    cursor_sy = int(row * TILE_SIZE - camera.y)
-    pygame.draw.rect(surface, (255, 230, 90), (cursor_sx, cursor_sy, TILE_SIZE, TILE_SIZE), 1)
+def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_world_pos, controller, show_builder):
+    # Only draw mouse builder cursor & prompts if in BUILDER mode!
+    if show_builder:
+        mx_world, my_world = mouse_world_pos
+        col = int(mx_world // TILE_SIZE)
+        row = int(my_world // TILE_SIZE)
+        cursor_sx = int(col * TILE_SIZE - camera.x)
+        cursor_sy = int(row * TILE_SIZE - camera.y)
+        pygame.draw.rect(surface, (255, 230, 90), (cursor_sx, cursor_sy, TILE_SIZE, TILE_SIZE), 1)
 
-    # 5-Heart Health Bar
+        help_img = font.render(
+            "BUILDER: [Click] '#' | [G+Click] Ring | [E+Click] Beetle | [F+Click] Fly | [R-Click] Erase | [P] Export",
+            True, (190, 215, 255)
+        )
+        surface.blit(help_img, (8, 18))
+
+    # 5-Heart SNES Health Bar
     for i in range(PLAYER_MAX_HP):
         hx = 8 + i * 13
         hy = 6
@@ -2523,12 +2678,6 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
         True, COLOR_HUD_TEXT
     )
     surface.blit(score_img, (78, 5))
-
-    help_img = font.render(
-        "PAINT: [Click] '#' | [G+Click] Ring | [E+Click] Beetle | [F+Click] Fly | [M+Click] Boss | [R-Click] Erase",
-        True, (190, 215, 255)
-    )
-    surface.blit(help_img, (8, 18))
 
     # Super Metroid Style Automap
     map_origin_x = INTERNAL_WIDTH - 110
@@ -2605,18 +2754,13 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
 # =============================================================================
 
 def draw_title_screen(surface, title_font, menu_font, selected_index, anim_timer, frog_idle_surf):
-    """
-    Renders the retro 16-bit Title Screen with title banner, options, and animated Froggy!
-    """
     surface.fill((16, 20, 36))
 
-    # Background decorative parallax stars / grid
     for x in range(0, INTERNAL_WIDTH, 24):
         pygame.draw.line(surface, (25, 32, 54), (x, 0), (x, INTERNAL_HEIGHT))
     for y in range(0, INTERNAL_HEIGHT, 24):
         pygame.draw.line(surface, (25, 32, 54), (0, y), (INTERNAL_WIDTH, y))
 
-    # Title Banner with drop shadow
     title_text = "F R O G G Y"
     shadow_img = title_font.render(title_text, True, (15, 18, 30))
     title_img = title_font.render(title_text, True, (80, 235, 120))
@@ -2630,11 +2774,9 @@ def draw_title_screen(surface, title_font, menu_font, selected_index, anim_timer
     sx = (INTERNAL_WIDTH - sub_img.get_width()) // 2
     surface.blit(sub_img, (sx, ty + 30))
 
-    # Animated Froggy preview on title screen
     frog_bounce_y = int(math.sin(anim_timer * 0.08) * 4)
     surface.blit(frog_idle_surf, ((INTERNAL_WIDTH // 2) - 8, 102 + frog_bounce_y))
 
-    # Menu Options: "START GAME" & "CREATE LEVEL"
     menu_items = ["START GAME", "CREATE LEVEL"]
     menu_start_y = 142
 
@@ -2646,20 +2788,17 @@ def draw_title_screen(surface, title_font, menu_font, selected_index, anim_timer
         iy = menu_start_y + i * 22
 
         if is_selected:
-            # Pulsing cursor arrow
             cursor_col = (255, 215, 70) if (anim_timer // 6) % 2 == 0 else (242, 107, 148)
             arrow_img = menu_font.render(">", True, cursor_col)
             surface.blit(arrow_img, (ix - 16, iy))
             surface.blit(arrow_img, (ix + item_img.get_width() + 8, iy))
 
-            # Highlight pill behind selected option
             pill_rect = pygame.Rect(ix - 6, iy - 2, item_img.get_width() + 12, item_img.get_height() + 4)
             pygame.draw.rect(surface, (45, 60, 95), pill_rect, border_radius=3)
             pygame.draw.rect(surface, cursor_col, pill_rect, 1, border_radius=3)
 
         surface.blit(item_img, (ix, iy))
 
-    # Controls instruction footer
     hint_text = "[UP / DOWN] Select   [SPACE / A / ENTER] Confirm"
     hint_img = menu_font.render(hint_text, True, (160, 185, 220))
     hx = (INTERNAL_WIDTH - hint_img.get_width()) // 2
@@ -2667,9 +2806,6 @@ def draw_title_screen(surface, title_font, menu_font, selected_index, anim_timer
 
 
 def draw_game_over_screen(surface, title_font, menu_font, anim_timer):
-    """
-    Renders the Game Over screen explaining death and offering instant respawn.
-    """
     dark_overlay = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
     dark_overlay.fill((45, 10, 20))
     dark_overlay.set_alpha(205)
@@ -2699,9 +2835,6 @@ def draw_game_over_screen(surface, title_font, menu_font, anim_timer):
 
 
 def draw_pause_screen(surface, title_font, menu_font, selected_index, anim_timer):
-    """
-    Renders in-game pause overlay.
-    """
     dark_overlay = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
     dark_overlay.fill((10, 15, 25))
     dark_overlay.set_alpha(190)
@@ -2734,7 +2867,7 @@ def draw_pause_screen(surface, title_font, menu_font, selected_index, anim_timer
 
 def main():
     pygame.init()
-    pygame.display.set_caption("FROGGY - 16-Bit Metroidvania (SNES Physics, 8-Way Tongue & Chiptune Audio)")
+    pygame.display.set_caption("FROGGY - 16-Bit Metroidvania (SNES Physics, 8-Way Tongue & Jamaican Groove)")
 
     window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     snes_canvas = pygame.Surface((INTERNAL_WIDTH, INTERNAL_HEIGHT))
@@ -2744,24 +2877,27 @@ def main():
     menu_font = pygame.font.SysFont("monospace", 10, bold=True)
     title_font = pygame.font.SysFont("impact", 26, bold=True)
 
-    # Initialize Procedural Audio Engine (Zero files required!)
+    # Initialize Procedural Audio Engine
     audio = RetroAudioEngine()
 
-    # Build procedural graphics and animations
     controller = SNESController()
     animations = SpriteSheetGenerator.build_froggy_animations()
     tile_textures = SpriteSheetGenerator.build_tile_textures()
     enemy_anims = SpriteSheetGenerator.build_enemy_animations()
 
-    # Start in Level 1 ("level_1")
     world = WorldManager(WORLD_BLUEPRINTS, tile_textures, enemy_anims, starting_room_id="level_1")
     spawn_x, spawn_y = world.current_room.default_spawn
     player = FroggyPlayer(spawn_x, spawn_y, animations)
-    camera = Camera(world.current_room.world_width, world.current_room.world_height)
+
+    # Smooth Hysteresis Camera
+    camera = SmoothCamera(world.current_room.world_width, world.current_room.world_height)
     camera.snap_to(player)
 
     # Game State Machine: "TITLE", "PLAYING", "PAUSED", "GAME_OVER"
     game_state = "TITLE"
+    # Mode: "ADVENTURE" (no builder tools on Level 1!) or "BUILDER" (Sandbox)
+    game_mode = "ADVENTURE"
+
     title_selected_index = 0
     pause_selected_index = 0
 
@@ -2769,7 +2905,6 @@ def main():
     pulse_timer = 0
     running = True
 
-    # Start Title Music
     audio.play_music("title")
 
     while running:
@@ -2792,13 +2927,15 @@ def main():
                     elif event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_k, pygame.K_z):
                         audio.play_sfx("select")
                         if title_selected_index == 0:
-                            # START GAME -> Launch Level 1 Demo
+                            # START GAME -> Clean Adventure Mode in Level 1 (Builder tools hidden!)
+                            game_mode = "ADVENTURE"
                             world.warp_directly_to_room("level_1", player, camera, audio)
                             player.hp = PLAYER_MAX_HP
                             game_state = "PLAYING"
                             audio.play_music("level")
                         elif title_selected_index == 1:
-                            # CREATE LEVEL -> Launch Blank Sandbox Room
+                            # CREATE LEVEL -> Sandbox Room with full Builder tools enabled!
+                            game_mode = "BUILDER"
                             world.warp_directly_to_room("sandbox_room", player, camera, audio)
                             player.hp = PLAYER_MAX_HP
                             game_state = "PLAYING"
@@ -2806,14 +2943,15 @@ def main():
                     elif event.key == pygame.K_ESCAPE:
                         running = False
 
-            # Render Title Screen
             frog_preview = animations["right"]["idle"][0]
             draw_title_screen(snes_canvas, title_font, menu_font, title_selected_index, pulse_timer, frog_preview)
 
         # =====================================================================
-        # STATE B: PLAYING (METROIDVANIA GAMEPLAY & LEVEL BUILDER)
+        # STATE B: PLAYING (METROIDVANIA GAMEPLAY / LEVEL BUILDER)
         # =====================================================================
         elif game_state == "PLAYING":
+            is_builder_active = (game_mode == "BUILDER")
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -2824,30 +2962,31 @@ def main():
                         audio.play_sfx("cursor")
                     elif event.key == pygame.K_TAB:
                         show_hud = not show_hud
-                    elif event.key == pygame.K_p:
+                    elif event.key == pygame.K_p and is_builder_active:
                         world.current_room.export_ascii_to_console()
                         audio.play_sfx("select")
                     elif event.key == pygame.K_b:
                         world.warp_directly_to_room("boss_sanctum", player, camera, audio)
 
-            # Live Mouse Level Builder Coordinates
+            # Live Mouse Level Builder Coordinates (ONLY active in Builder mode!)
             mouse_win_x, mouse_win_y = pygame.mouse.get_pos()
             canvas_mx = mouse_win_x / WINDOW_SCALE
             canvas_my = mouse_win_y / WINDOW_SCALE
             world_mx = canvas_mx + camera.x
             world_my = canvas_my + camera.y
 
-            mouse_buttons = pygame.mouse.get_pressed()
-            keys = pygame.key.get_pressed()
-            if mouse_buttons[0]:
-                if keys[pygame.K_g]: brush_char = 'G'
-                elif keys[pygame.K_e]: brush_char = 'E'
-                elif keys[pygame.K_f]: brush_char = 'F'
-                elif keys[pygame.K_m]: brush_char = 'M'
-                else: brush_char = '#'
-                world.current_room.paint_tile_at_world_pos(world_mx, world_my, brush_char)
-            elif mouse_buttons[2]:
-                world.current_room.paint_tile_at_world_pos(world_mx, world_my, '.')
+            if is_builder_active:
+                mouse_buttons = pygame.mouse.get_pressed()
+                keys = pygame.key.get_pressed()
+                if mouse_buttons[0]:
+                    if keys[pygame.K_g]: brush_char = 'G'
+                    elif keys[pygame.K_e]: brush_char = 'E'
+                    elif keys[pygame.K_f]: brush_char = 'F'
+                    elif keys[pygame.K_m]: brush_char = 'M'
+                    else: brush_char = '#'
+                    world.current_room.paint_tile_at_world_pos(world_mx, world_my, brush_char)
+                elif mouse_buttons[2]:
+                    world.current_room.paint_tile_at_world_pos(world_mx, world_my, '.')
 
             # Update Simulation
             controller.update()
@@ -2859,7 +2998,6 @@ def main():
                 player.update(controller, world.current_room, world, audio)
                 camera.update(player)
 
-                # Check Death Condition
                 if player.hp <= 0:
                     player.hp = 0
                     game_state = "GAME_OVER"
@@ -2874,7 +3012,8 @@ def main():
             if show_hud:
                 draw_hud_and_minimap(
                     snes_canvas, hud_font, player, world, camera,
-                    (world_mx, world_my), controller
+                    (world_mx, world_my), controller,
+                    show_builder=is_builder_active
                 )
 
             world.draw_fade_overlay(snes_canvas)
@@ -2917,7 +3056,6 @@ def main():
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_k, pygame.K_z):
-                        # Respawn Froggy at the current room's entrance with full health!
                         player.hp = PLAYER_MAX_HP
                         spawn_x, spawn_y = world.current_room.default_spawn
                         player.teleport_to_room(spawn_x, spawn_y)
