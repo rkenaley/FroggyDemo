@@ -2,22 +2,16 @@
 
 A complete, self-contained 2D platformer engine built in Python with `pygame-ce`. Inspired by *Super Castlevania IV*, *Super Metroid*, and *Yoshi's Island*.
 
-Designed specifically for learning: every physics formula, state transition, procedural sprite generator, and collision step is written for maximum legibility with thorough comments.
-
 ---
 
 ## 🎮 How to Run
 
-1. Open a terminal in the project directory:
-   ```bash
+1. Open PowerShell and navigate to the project directory:
+   ```powershell
    cd c:\AGProj\FroggyDemo
    ```
-2. Install `pygame-ce` (if not already installed):
-   ```bash
-   py -3.12 -m pip install pygame-ce
-   ```
-3. Run the engine:
-   ```bash
+2. Run the game:
+   ```powershell
    py -3.12 froggy_engine.py
    ```
 
@@ -25,71 +19,56 @@ Designed specifically for learning: every physics formula, state transition, pro
 
 ## 🕹️ Controls (Keyboard & SNES Controller)
 
-| Action | Keyboard Mapping | Physical SNES / Gamepad |
+| Action | Keyboard Mapping | Gamepad (SNES / XInput) |
 | :--- | :--- | :--- |
 | **8-Way Aim & Move** | Arrow Keys or `W`/`A`/`S`/`D` | D-Pad / Left Analog Stick |
 | **Jump (Ground / Wall / Double)** | `SPACE`, `Z`, or `K` | Face Buttons (`A` or `B`) |
 | **8-Directional Tongue Whip** | `X` or `J` | Face Button (`Y` or `X`) |
 | **Spore Boomerang Sub-Weapon** | `C`, `U`, or `Left Shift` | Right Shoulder (`R1`) |
+| **Menu Navigation (Title / Pause)** | `UP` / `DOWN` (Select), `SPACE` / `ENTER` (Confirm) | D-Pad + `A` Button |
+| **Pause / Return to Title** | `ESCAPE` | — |
 | **Toggle Telemetry HUD** | `TAB` | — |
 | **Instant Warp to Boss Chamber** | `B` | — |
 | **Export Edited ASCII Map** | `P` | — |
-| **Exit Game** | `ESCAPE` | — |
 
 ---
 
-## 🧱 Live In-Game Mouse Level Builder
+## 💡 Quick Explainer: Why Did You Die After 5 Hits?
 
-You can modify the level in real time while playing! Click anywhere on the screen:
-
-- **Left-Click**: Place a Solid Stone/Moss Brick (`#`)
-- **Hold `G` + Left-Click**: Place a Gold Grapple Anchor Ring (`G`)
-- **Hold `E` + Left-Click**: Place a Spiked Moss Beetle (`E`)
-- **Hold `F` + Left-Click**: Place a Flying Neon Buzzfly (`F`)
-- **Hold `M` + Left-Click**: Place Emperor Mantis Boss (`M`)
-- **Right-Click**: Erase tile/enemy to empty air (`.`)
-- **Press `P`**: Prints the modified ASCII character grid directly to the terminal so you can copy and paste your level permanently into `WORLD_BLUEPRINTS`!
+1. **The 5-Heart Health Bar (`PLAYER_MAX_HP = 5`)**:
+   - Froggy starts with 5 health hearts (displayed in the top-left HUD).
+   - Colliding with any active enemy (like the Spiked Moss Beetle) or an enemy attack deals **1 Heart of damage**.
+   - Froggy is knocked backward and granted **65 frames (~1.1 seconds)** of blinking invulnerability ("i-frames") so you don't take multiple hits instantly.
+2. **How to Heal**:
+   - Hitting a Buzzfly (`F`) with the tongue or stunning a Moss Beetle (`E`) and then striking it with the tongue yanks it straight into Froggy's mouth.
+   - **Swallowing any bug restores +1 Heart** and immediately refreshes your mid-air Double Jump!
+3. **New Death & Respawn Screen**:
+   - When all 5 Hearts are depleted, a retro **GAME OVER** screen appears.
+   - Press **`SPACE` / `A` / `B`** to instantly respawn at the room entrance with full 5-heart health, or press **`ESC`** to return to the Title Screen.
 
 ---
 
-## 🔬 Systems Breakdown for Your Nephew
+## 🌟 What's New in This Build
 
-### 1. Authentic 16-Bit Resolution & Pixel-Art Generation
-- The entire game renders to an authentic low-resolution internal retro canvas (**480×270** pixels).
-- The canvas is cleanly scaled up by `3x` to **1440×810** without blurring.
-- All sprites and tiles are generated procedurally in RAM from ASCII text grids in `SpriteSheetGenerator`. No external PNG files or missing file paths!
+### 1. Title Screen & State Machine
+- Authentic retro title screen with animated Froggy, pulsing cursor, and two main options:
+  - **`START GAME`**: Launches the curated Level 1 tutorial demo.
+  - **`CREATE LEVEL`**: Opens a clean sandbox chamber with all level-builder brushes ready.
+- In-game Pause menu (`ESCAPE`) to resume, return to title, or quit.
 
-### 2. Separated-Axis AABB Physics (No Corner Snagging)
-Movement is evaluated in two distinct phases every frame:
-1. **Horizontal Phase**: Move by $v_x$, check bounding box collisions against solid tiles, and detect left/right walls.
-2. **Vertical Phase**: Move by $v_y$, check vertical collisions, and detect floor/ceiling contact.
-Separating the axes guarantees that sliding down a wall or landing on a platform edge never glitches into horizontal walls.
+### 2. Level 1 Tutorial Demo ("FROGGY'S FIRST HOP")
+A dedicated learning course designed for your nephew:
+- **Zone 1 (Run & Hop)**: Flat mossy floor with a 1-tile hop over a stone block.
+- **Zone 2 (Double Jump)**: A 3-tile high ledge requiring a mid-air double jump.
+- **Zone 3 (Combat & Eating)**: A platform with an isolated Moss Beetle to practice throwing `R` (Spore Boomerang) to stun and `Y` (Tongue) to yank, eat, and heal.
+- **Zone 4 (Wall Jumps)**: A vertical chimney to practice sliding down walls and kicking off them.
+- **Zone 5 (Grapple Swing)**: An overhead Gold Grapple Ring (`G`) to practice 8-way pendulum swings over a gap.
+- **Zone 6 (Exit Door)**: Glowing Door `A` that connects to the rest of the Metroidvania castle!
 
-### 3. "SNES Crisp" Controls: Coyote Time & Jump Buffering
-- **Coyote Time (`COYOTE_TIME_FRAMES = 6`)**: When Froggy walks off a ledge into empty air, the engine gives 6 frames (~0.1 seconds) where a jump press will still trigger.
-- **Jump Buffer (`JUMP_BUFFER_FRAMES = 6`)**: If the jump button is pressed right before touching the floor, the input is remembered and executed immediately upon landing.
-- **Variable Jump Cutoff**: Releasing the jump button early cuts $v_y$ by $45\%$, allowing precise short hops.
-
-### 4. *Super Castlevania IV* Pendulum Grapple
-- When pressing `Y`, the tongue shoots in one of 8 directions using a normalized unit vector:
-  $$\hat{d} = \frac{(dx, dy)}{\sqrt{dx^2 + dy^2}}$$
-- When the tongue tip hits a gold grapple ring (`G`), linear velocity is projected onto the pendulum's tangent vector to calculate angular velocity $\omega$:
-  $$\omega = \frac{v_{\text{tangent}}}{L}$$
-- While swinging:
-  - **Left / Right** on the D-Pad applies angular pump force.
-  - **Up / Down** on the D-Pad reels the rope in or out.
-  - Pressing **Jump** detaches and converts angular momentum back into a launch arc.
-
-### 5. Stun, Yank, and Swallow Combat Loop
-- **Moss Beetle (`E`)**: Features a downward cliff-feeler sensor. Hit with Spore Boomerang (`R`) or Tongue (`Y`) to flip it upside-down into a stunned state, then hit it again with the tongue to yank and swallow it.
-- **Buzzfly (`F`)**: Flies in a harmonic sine wave. Hitting it immediately latches and yanks it into Froggy's mouth.
-- **Swallowing Rewards**: Eating any bug restores **+1 Heart** and immediately **resets your mid-air Double Jump**!
-
-### 6. Multi-Phase Boss: Emperor Mantis (`M`)
-Located in Room 4 (*Emperor Mantis Sanctum*):
-- **Phase 1 (6–5 HP)**: Lissajous figure-8 flight + aimed scythe waves.
-- **Phase 2 (4–3 HP)**: 40% speed boost + high-speed dive-bombs + summons Buzzfly minions for mid-battle healing.
-- **Phase 3 (2–1 HP)**: Enraged crimson aura + 3-way spread shots.
-- **The Combat Puzzle**:
-  1. Throw the Spore Boomerang (`R`) to short out its scythe armor and drop it into `WEAK_EXPOSED` state.
-  2. Aim your 8-way tongue (`Y`) into the glowing magenta chest core to rip out an Energy Pearl and swallow it!
+### 3. Procedural Chiptune Audio Synthesizer (Zero External Files!)
+Generated in under 0.5s at startup directly in RAM using Python's built-in `wave` and `math` modules:
+- **14 Sound Effects**: Rising jumps, double jump chirps, wall jump pings, whip snaps, metallic grapple clinks, boomerang whirs, funny boing stuns, eating/health chimes, damage thuds, and menu blips.
+- **3 Multi-Track Music Themes**:
+  - **Title Fanfare**: Bouncy, heroic 16-bit intro theme.
+  - **Damp Caverns**: Atmospheric, rhythmic exploration theme with driving bassline and chiptune drums.
+  - **Boss Overdrive**: Fast, intense battle music for Emperor Mantis!
