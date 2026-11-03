@@ -118,7 +118,7 @@ BOSS_WEAK_EXPOSED_FRAMES = 210
 
 # --- Metroidvania Screen Transitions ---
 TRANSITION_FADE_SPEED = 18
-DOOR_COOLDOWN_FRAMES = 24
+DOOR_COOLDOWN_FRAMES = 36
 
 # --- Color Palette (16-Bit SNES Inspired RGB Tuples) ---
 COLOR_BG_GRID = (26, 38, 56)
@@ -131,6 +131,7 @@ COLOR_HEART_RED = (235, 65, 85)
 COLOR_HEART_EMPTY = (60, 45, 70)
 COLOR_BOSS_CORE = (255, 70, 210)
 COLOR_BOSS_GOLD = (255, 215, 70)
+COLOR_GRAPPLE_GOLD = (255, 215, 70)
 
 
 # =============================================================================
@@ -948,8 +949,8 @@ WORLD_BLUEPRINTS = {
         "doors": {
             "A": {
                 "target_room": "entrance_hall",
-                "target_door": "A_IN",
-                "spawn_offset_x": 22,
+                "target_door": "A",
+                "spawn_offset_x": 26,
                 "spawn_offset_y": 0,
             }
         },
@@ -989,16 +990,16 @@ WORLD_BLUEPRINTS = {
         "bg_color": (18, 24, 44),
         "map_coords": (1, 0),
         "doors": {
-            "A_IN": {
+            "A": {
                 "target_room": "level_1",
                 "target_door": "A",
-                "spawn_offset_x": -22,
+                "spawn_offset_x": -26,
                 "spawn_offset_y": 0,
             },
-            "A": {
+            "B": {
                 "target_room": "chimney_tower",
-                "target_door": "A",
-                "spawn_offset_x": 22,
+                "target_door": "B",
+                "spawn_offset_x": 26,
                 "spawn_offset_y": 0,
             }
         },
@@ -1020,9 +1021,9 @@ WORLD_BLUEPRINTS = {
             "#..........................................######..........#",
             "#....................E.....................................#",
             "#.................######...................................#",
-            "A_IN.......................................................A",
-            "A_IN.......................................................A",
-            "A_IN###.......................................E............A",
+            "A..........................................................B",
+            "A..........................................................B",
+            "A###.......................................E...............B",
             "#..........................................#######.........#",
             "########################~~~~~~~~~~~~########################",
             "############################################################",
@@ -1038,16 +1039,16 @@ WORLD_BLUEPRINTS = {
         "bg_color": (22, 20, 44),
         "map_coords": (1, 1),
         "doors": {
-            "A": {
+            "B": {
                 "target_room": "entrance_hall",
-                "target_door": "A",
-                "spawn_offset_x": -22,
+                "target_door": "B",
+                "spawn_offset_x": -26,
                 "spawn_offset_y": 0,
             },
-            "B": {
+            "C": {
                 "target_room": "grapple_cavern",
-                "target_door": "B",
-                "spawn_offset_x": 22,
+                "target_door": "C",
+                "spawn_offset_x": 26,
                 "spawn_offset_y": 0,
             },
         },
@@ -1055,8 +1056,8 @@ WORLD_BLUEPRINTS = {
             "############################################",
             "#..........................................#",
             "#.....................G....................#",
-            "#..........................................B",
-            "#..................................E.......B",
+            "#..........................................C",
+            "#..................................E.......C",
             "#............................###############",
             "#..................###.....#...............#",
             "#........F.........###.....#...............#",
@@ -1073,9 +1074,9 @@ WORLD_BLUEPRINTS = {
             "#..........E.......###.....................#",
             "#.......######.....###.....................#",
             "#..................###............E........#",
-            "A..............................######......#",
-            "A............E.............................#",
-            "A.........######...........................#",
+            "B..............................######......#",
+            "B............E.............................#",
+            "B.........######...........................#",
             "############################################",
         ],
     },
@@ -1089,16 +1090,16 @@ WORLD_BLUEPRINTS = {
         "bg_color": (14, 30, 42),
         "map_coords": (2, 1),
         "doors": {
-            "B": {
+            "C": {
                 "target_room": "chimney_tower",
-                "target_door": "B",
-                "spawn_offset_x": -22,
+                "target_door": "C",
+                "spawn_offset_x": -26,
                 "spawn_offset_y": 0,
             },
-            "C": {
+            "D": {
                 "target_room": "boss_sanctum",
-                "target_door": "C",
-                "spawn_offset_x": 22,
+                "target_door": "D",
+                "spawn_offset_x": 26,
                 "spawn_offset_y": 0,
             },
         },
@@ -1106,8 +1107,8 @@ WORLD_BLUEPRINTS = {
             "############################################################",
             "#..........................................................#",
             "#..........................................................#",
-            "B...........G.............G.............G.............G....#",
-            "B..........................................................#",
+            "C...........G.............G.............G.............G....#",
+            "C..........................................................#",
             "#########..................................................#",
             "#.................F.............F.............F............#",
             "#...................G.............G.............G..........#",
@@ -1117,9 +1118,9 @@ WORLD_BLUEPRINTS = {
             "#.......#####.............F.............F..................#",
             "#..........................................................#",
             "#...................###.........###.........###............#",
-            "#...................###.........###.........###............C",
-            "#...................###.........###.........###..........E.C",
-            "#...................###.........###.........###.......######",
+            "#...................###.........###.........###............D",
+            "#...................###.........###.........###..........E.D",
+            "#...................###.........###.........###.......#####D",
             "#...................###.........###.........###............#",
             "#...................###.........###.........###............#",
             "#...................###.........###.........###............#",
@@ -1139,10 +1140,16 @@ WORLD_BLUEPRINTS = {
         "map_coords": (3, 1),
         "boss_trigger_x": 60,  # Immediate boss awakening upon entering the Sanctum!
         "doors": {
-            "C": {
+            "D": {
                 "target_room": "grapple_cavern",
-                "target_door": "C",
-                "spawn_offset_x": -22,
+                "target_door": "D",
+                "spawn_offset_x": -26,
+                "spawn_offset_y": 0,
+            },
+            "V": {
+                "target_room": "victory_chamber",
+                "target_door": "V",
+                "spawn_offset_x": 26,
                 "spawn_offset_y": 0,
             },
         },
@@ -1164,10 +1171,59 @@ WORLD_BLUEPRINTS = {
             "#..........................................#",
             "#..........................................#",
             "#..........................................#",
-            "C......T............................T......#",
-            "C...#######......................#######...#",
-            "C..........................................#",
+            "D......T............................T......V",
+            "D...#######......................#######...V",
+            "D..........................................V",
             "#..........................................#",
+            "############################################",
+            "############################################",
+        ],
+    },
+
+    # -------------------------------------------------------------------------
+    # ROOM 6: SACRED LILYPAD SANCTUARY (VICTORY REWARD CHAMBER)
+    # -------------------------------------------------------------------------
+    "victory_chamber": {
+        "title": "6. SACRED LILYPAD SANCTUARY",
+        "theme": "canopy",
+        "bg_color": (12, 34, 30),
+        "map_coords": (4, 1),
+        "doors": {
+            "V": {
+                "target_room": "boss_sanctum",
+                "target_door": "V",
+                "spawn_offset_x": -26,
+                "spawn_offset_y": 0,
+            },
+            "P": {
+                "target_room": "level_1",
+                "target_door": "START",
+                "spawn_offset_x": 0,
+                "spawn_offset_y": 0,
+            },
+        },
+        "ascii_grid": [
+            "############################################",
+            "#..........................................#",
+            "#..........................................#",
+            "#....................G.....................#",
+            "#..........................................#",
+            "#..........................................#",
+            "#..........................................#",
+            "#..........................................#",
+            "#..........................................#",
+            "#....................T.....................#",
+            "#.................#######..................#",
+            "#..........................................#",
+            "#..........................................#",
+            "#..........................................#",
+            "#.........F......................F.........#",
+            "#.......#####..................#####.......#",
+            "V..........................................P",
+            "V..........................................P",
+            "V..........................................P",
+            "#..######################################..#",
+            "############################################",
             "############################################",
             "############################################",
         ],
@@ -1804,8 +1860,10 @@ class TileMapRoom:
 
         self.default_spawn = (64, 64)
         self.active_player_ref = None
+        self.boss_defeated = False       # Defeated bosses stay dead; unseals arena doors!
         self.boss_defeated_banner_timer = 0
         self.boss_awakening_banner_timer = 0
+        self.door_locked_hint_timer = 0  # Timer showing "Gate Sealed" warning prompt
         self.screen_shake_timer = 0
         self.sinister_ambience_active = (self.theme == "sanctum")
 
@@ -1908,21 +1966,16 @@ class TileMapRoom:
                 elif char in ('E', 'F', 'M'):
                     self.enemy_spawns.append((char, world_x, world_y))
 
-                matched_door = None
-                for d_id in self.door_configs:
-                    if self.grid[row][col] == d_id[0]:
-                        matched_door = d_id
-                        break
-
-                if matched_door:
+                # 1-to-1 exact character matching for Door Portals ('A', 'B', 'C', 'D', 'V', 'P')
+                if char in self.door_configs:
                     tile_rect = pygame.Rect(world_x, world_y, TILE_SIZE, TILE_SIZE)
-                    cfg = self.door_configs.get(matched_door, {})
-                    is_boss_d = (cfg.get("target_room") == "boss_sanctum") or (self.theme == "sanctum")
-                    self.door_tiles.append((world_x, world_y, is_boss_d))
-                    if matched_door not in door_bounds:
-                        door_bounds[matched_door] = tile_rect
+                    cfg = self.door_configs[char]
+                    is_boss_d = (cfg.get("target_room") == "boss_sanctum") or (self.theme == "sanctum") or (self.boss_trigger_x is not None)
+                    self.door_tiles.append((world_x, world_y, is_boss_d, char))
+                    if char not in door_bounds:
+                        door_bounds[char] = tile_rect
                     else:
-                        door_bounds[matched_door] = door_bounds[matched_door].union(tile_rect)
+                        door_bounds[char] = door_bounds[char].union(tile_rect)
 
                 col += 1
 
@@ -1959,10 +2012,12 @@ class TileMapRoom:
             elif char == 'F':
                 self.enemies.append(BuzzFly(wx, wy, self.enemy_anims))
             elif char == 'M':
-                boss = EmperorMantis(wx, wy, self.enemy_anims)
-                if self.theme == "sanctum":
-                    boss.awaken()
-                self.enemies.append(boss)
+                # Defeated bosses NEVER respawn! Once slain, they remain permanently defeated!
+                if not self.boss_defeated:
+                    boss = EmperorMantis(wx, wy, self.enemy_anims)
+                    if self.theme == "sanctum":
+                        boss.awaken()
+                    self.enemies.append(boss)
 
     def get_active_boss(self):
         for enemy in self.enemies:
@@ -1981,7 +2036,6 @@ class TileMapRoom:
     def update_entities(self, player, audio=None, pulse_timer=0):
         self.active_player_ref = player
         boss = self.get_active_boss()
-        had_awakened_boss = (boss is not None and boss.awakened)
 
         # Check if Froggy just crossed the Boss Awakening threshold!
         if boss is not None and not boss.awakened:
@@ -2000,10 +2054,16 @@ class TileMapRoom:
                 enemy.update(self)
         self.enemies = [e for e in self.enemies if e.alive]
 
-        # If the awakened Emperor Mantis was just defeated, restore triumphant groove!
-        if had_awakened_boss and self.get_active_boss() is None:
+        # If this room contains a boss encounter ('M') and no alive boss remains,
+        # trigger the one-shot Boss Defeat sequence, unsealing all locked doors permanently!
+        room_has_boss = any(char == 'M' for char, _, _ in self.enemy_spawns)
+        if room_has_boss and not self.boss_defeated and self.get_active_boss() is None:
+            self.boss_defeated = True
             self.boss_defeated_banner_timer = 260
             self.sinister_ambience_active = False
+            for door in self.doors.values():
+                self.spawn_particle_burst(door.rect.centerx, door.rect.centery, COLOR_BOSS_GOLD, count=35)
+                self.spawn_particle_burst(door.rect.centerx, door.rect.centery, COLOR_DOOR_GLOW, count=30)
             if audio:
                 audio.play_sfx("select")
                 audio.play_music("level")
@@ -2012,6 +2072,8 @@ class TileMapRoom:
             self.boss_defeated_banner_timer -= 1
         if self.boss_awakening_banner_timer > 0:
             self.boss_awakening_banner_timer -= 1
+        if self.door_locked_hint_timer > 0:
+            self.door_locked_hint_timer -= 1
         if self.screen_shake_timer > 0:
             self.screen_shake_timer -= 1
 
@@ -2072,9 +2134,30 @@ class TileMapRoom:
                 return True
         return False
 
+    def is_door_locked(self, door_id):
+        """
+        Boss Arena Lockdown System:
+        In true Metroidvania fashion, whenever a boss is in the room and alive,
+        exit doors are sealed shut by an ancient crimson force field!
+        Once Froggy slays the Emperor Mantis, self.boss_defeated is permanently
+        set to True, shattering the seals with a golden particle explosion!
+        """
+        if self.boss_defeated:
+            return False
+        # If an active boss is in this room, doors are locked!
+        if self.get_active_boss() is not None:
+            return True
+        for char, _, _ in self.enemy_spawns:
+            if char == 'M':
+                return True
+        return False
+
     def get_touched_door(self, player_rect):
         for door in self.doors.values():
             if door.rect.colliderect(player_rect):
+                if self.is_door_locked(door.door_id):
+                    self.door_locked_hint_timer = 45
+                    return None
                 return door
         return None
 
@@ -2164,16 +2247,26 @@ class TileMapRoom:
 
         # 7. ANIMATED RUNE PORTAL DOORS
         door_frame = (pulse_timer // 6) % 4
-        for dx, dy, is_boss_d in self.door_tiles:
+        for dx, dy, is_boss_d, d_char in self.door_tiles:
             sx = int(dx - camera_x)
             sy = int(dy - camera_y)
             d_tex = self.assets.special_tiles["boss_door" if is_boss_d else "door"][door_frame]
             surface.blit(d_tex, (sx, sy))
 
         glow_radius = int(2 + math.sin(pulse_timer * 0.12) * 2)
-        for door in self.doors.values():
+        for door_id, door in self.doors.items():
             screen_door = door.rect.move(-int(camera_x), -int(camera_y))
-            pygame.draw.rect(surface, COLOR_DOOR_GLOW, screen_door.inflate(glow_radius, glow_radius), 1)
+            if self.is_door_locked(door_id):
+                # Pulsing red/crimson sealed barrier
+                seal_col = (255, 45, 65) if (pulse_timer // 5) % 2 == 0 else (210, 20, 40)
+                pygame.draw.rect(surface, seal_col, screen_door.inflate(glow_radius, glow_radius), 2)
+                # Sealed energy crossbars
+                pygame.draw.line(surface, seal_col, screen_door.topleft, screen_door.bottomright, 2)
+                pygame.draw.line(surface, seal_col, screen_door.bottomleft, screen_door.topright, 2)
+                # Lock rune core
+                pygame.draw.circle(surface, (255, 200, 210), screen_door.center, 3)
+            else:
+                pygame.draw.rect(surface, COLOR_DOOR_GLOW, screen_door.inflate(glow_radius, glow_radius), 1)
 
         # 8. ENEMIES, BOSS & PROJECTILES
         for enemy in self.enemies:
@@ -2584,9 +2677,15 @@ class FroggyPlayer:
 
             hit_anchor = room.get_grapple_node_at(tip_x, tip_y)
             if hit_anchor is not None:
-                self._attach_to_grapple(hit_anchor)
-                if audio:
-                    audio.play_sfx("latch")
+                # The tongue is only grabby while holding the button (Y on SNES, X/Y on Xbox, X/J on keyboard)!
+                # If the player released the button before contact, it creates sparks and retracts.
+                if controller.held["Y"]:
+                    self._attach_to_grapple(hit_anchor)
+                    if audio:
+                        audio.play_sfx("latch")
+                else:
+                    room.spawn_particle_burst(tip_x, tip_y, COLOR_GRAPPLE_GOLD, count=8)
+                    self.tongue_state = "RETRACTING"
                 return
 
             if room.is_point_inside_solid(tip_x, tip_y):
@@ -2734,15 +2833,29 @@ class FroggyPlayer:
             self.facing_right = (dx > 0)
 
         if controller.jump_just_pressed:
+            # Jumping off the rope grants an upward rocket jump boost!
+            rel_x = self.grapple_anchor.x - self.center_x
+            rel_y = self.grapple_anchor.y - self.center_y
+            dist = max(1.0, math.hypot(rel_x, rel_y))
+            self.tongue_dir_x = rel_x / dist
+            self.tongue_dir_y = rel_y / dist
+            self.tongue_length = dist
             self.tongue_state = "RETRACTING"
-            self.tongue_length = self.swing_rope_length
             self.vy = min(self.vy - 3.2, JUMP_VELOCITY * 0.85)
             self.vx *= 1.15
             if audio:
                 audio.play_sfx("jump")
-        elif controller.just_pressed["Y"]:
+        elif not controller.held["Y"]:
+            # Hold-to-Grapple Mechanic:
+            # As soon as the player releases the tongue button (Y on SNES, X/Y on Xbox),
+            # Froggy immediately releases his grip, flinging along the swing tangent with full momentum!
+            rel_x = self.grapple_anchor.x - self.center_x
+            rel_y = self.grapple_anchor.y - self.center_y
+            dist = max(1.0, math.hypot(rel_x, rel_y))
+            self.tongue_dir_x = rel_x / dist
+            self.tongue_dir_y = rel_y / dist
+            self.tongue_length = dist
             self.tongue_state = "RETRACTING"
-            self.tongue_length = self.swing_rope_length
 
     def _update_standard_physics(self, controller, room, audio=None):
         (dx, _), _ = controller.get_dpad_vector(self.facing_right)
@@ -2824,6 +2937,21 @@ class FroggyPlayer:
                     self.touching_wall_dir = -1
                 self.x = float(self.rect.x)
                 self.vx = 0.0
+
+        # Physical force field barrier collision against sealed boss arena doors!
+        for door_id, door in room.doors.items():
+            if room.is_door_locked(door_id):
+                if self.rect.colliderect(door.rect):
+                    if self.vx > 0:
+                        self.rect.right = door.rect.left
+                        self.touching_wall_dir = 1
+                    elif self.vx < 0:
+                        self.rect.left = door.rect.right
+                        self.touching_wall_dir = -1
+                    self.x = float(self.rect.x)
+                    self.vx = 0.0
+                    room.door_locked_hint_timer = 45
+                    room.spawn_particle_burst(self.center_x, self.center_y, (255, 60, 80), count=4)
 
         if self.touching_wall_dir == 0 and not self.on_ground:
             if room.rect_collides_with_solid(self.rect.move(-1, 0)):
@@ -3087,6 +3215,15 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
         pygame.draw.rect(surface, COLOR_BOSS_GOLD, (bx - 10, by - 5, banner_surf.get_width() + 20, 22), 1, border_radius=4)
         surface.blit(banner_surf, (bx, by))
 
+    # Gate Sealed Warning Banner (Shown when player bumps into locked boss doors)
+    if getattr(room, "door_locked_hint_timer", 0) > 0 and (pulse_timer // 4) % 2 == 0:
+        lock_surf = font.render("GATE SEALED! DEFEAT THE EMPEROR MANTIS TO PASS!", True, (255, 75, 95))
+        lx = (INTERNAL_WIDTH - lock_surf.get_width()) // 2
+        ly = 72
+        pygame.draw.rect(surface, (36, 12, 18), (lx - 10, ly - 4, lock_surf.get_width() + 20, 20), border_radius=4)
+        pygame.draw.rect(surface, (255, 75, 95), (lx - 10, ly - 4, lock_surf.get_width() + 20, 20), 1, border_radius=4)
+        surface.blit(lock_surf, (lx, ly))
+
 
 # =============================================================================
 # CHAPTER 13. LUSH 720p TITLE SCREEN, PAUSE MENU & MAIN ENGINE LOOP
@@ -3290,6 +3427,8 @@ def main():
                 audio.play_sfx("select")
                 if title_selected_index == 0:
                     game_mode = "ADVENTURE"
+                    world = WorldManager(WORLD_BLUEPRINTS, assets, enemy_anims, starting_room_id="level_1")
+                    player = FroggyPlayer(0, 0, animations)
                     world.warp_directly_to_room("level_1", player, camera, audio)
                     player.hp = PLAYER_MAX_HP
                     game_state = "PLAYING"
