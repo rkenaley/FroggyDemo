@@ -2288,19 +2288,21 @@ class WorldManager:
 
 
 # =============================================================================
-# CHAPTER 10. SNES CONTROLLER ABSTRACTION LAYER
+# CHAPTER 10. SNES / XBOX CONTROLLER ABSTRACTION LAYER
 # =============================================================================
+# XBOX 360 / XBOX SERIES X|S USB CONTROLLER MAPPING (SDL2 XInput on Windows):
+#   - D-Pad (Hat 0) or Left Stick (Axes 0 & 1) : 8-Way Movement & Tongue Aim
+#   - Xbox A (Button 0) or Xbox B (Button 1)   : Jump / Double Jump / Wall Jump / Menu Confirm
+#   - Xbox X (Button 2) or Xbox Y (Button 3)   : 8-Way Tongue Whip & Grapple Swing
+#   - RB (Btn 5), RT (Axis 5), LB (Btn 4), LT  : Spore Boomerang Special Weapon
+#   - Start / Menu (Button 7)                  : Pause Game / Confirm Menu
+#   - Back / View (Button 6)                   : Toggle HUD (in-game) / Back to Title
 
 class SNESController:
     def __init__(self):
         pygame.joystick.init()
         self.joystick = None
-        if pygame.joystick.get_count() > 0:
-            self.joystick = pygame.joystick.Joystick(0)
-            self.joystick.init()
-            print(f"[SNES Controller] Connected Gamepad: {self.joystick.get_name()}")
-        else:
-            print("[SNES Controller] No Gamepad detected. Using Keyboard SNES fallback mapping.")
+        self._connect_first_gamepad()
 
         self.held = {
             "UP": False, "DOWN": False, "LEFT": False, "RIGHT": False,
@@ -2311,42 +2313,97 @@ class SNESController:
         self.just_pressed = {k: False for k in self.held}
         self.just_released = {k: False for k in self.held}
 
+    def _connect_first_gamepad(self):
+        if pygame.joystick.get_count() > 0:
+            self.joystick = pygame.joystick.Joystick(0)
+            print(
+                f"[Controller] Connected USB Gamepad: {self.joystick.get_name()} "
+                f"({self.joystick.get_numbuttons()} buttons, {self.joystick.get_numaxes()} axes, "
+                f"{self.joystick.get_numhats()} D-pad hat)"
+            )
+        else:
+            self.joystick = None
+            print("[Controller] No Gamepad detected. Using Keyboard SNES fallback mapping.")
+
+    def handle_hotplug_event(self, event):
+        """Automatically reconnects if the USB Xbox controller is plugged/unplugged."""
+        if event.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+            self._connect_first_gamepad()
+
     def update(self):
         self.prev_held = self.held.copy()
         keys = pygame.key.get_pressed()
 
-        self.held["LEFT"] = keys[pygame.K_LEFT] or keys[pygame.K_a]
-        self.held["RIGHT"] = keys[pygame.K_RIGHT] or keys[pygame.K_d]
-        self.held["UP"] = keys[pygame.K_UP] or keys[pygame.K_w]
-        self.held["DOWN"] = keys[pygame.K_DOWN] or keys[pygame.K_s]
+        # 1. Keyboard Fallback Mapping
+        self.held["LEFT"] = bool(keys[pygame.K_LEFT] or keys[pygame.K_a])
+        self.held["RIGHT"] = bool(keys[pygame.K_RIGHT] or keys[pygame.K_d])
+        self.held["UP"] = bool(keys[pygame.K_UP] or keys[pygame.K_w])
+        self.held["DOWN"] = bool(keys[pygame.K_DOWN] or keys[pygame.K_s])
 
-        self.held["A"] = keys[pygame.K_SPACE] or keys[pygame.K_k] or keys[pygame.K_RETURN]
-        self.held["B"] = keys[pygame.K_z]
-        self.held["Y"] = keys[pygame.K_x] or keys[pygame.K_j]
-        self.held["R"] = keys[pygame.K_c] or keys[pygame.K_u] or keys[pygame.K_LSHIFT]
+        self.held["A"] = bool(keys[pygame.K_SPACE] or keys[pygame.K_k] or keys[pygame.K_RETURN])
+        self.held["B"] = bool(keys[pygame.K_z])
+        self.held["X"] = False
+        self.held["Y"] = bool(keys[pygame.K_x] or keys[pygame.K_j])
+        self.held["L"] = False
+        self.held["R"] = bool(keys[pygame.K_c] or keys[pygame.K_u] or keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT])
+        self.held["START"] = bool(keys[pygame.K_ESCAPE])
+        self.held["SELECT"] = bool(keys[pygame.K_TAB])
 
+        # 2. USB Xbox / XInput Gamepad Mapping
         if self.joystick:
-            if self.joystick.get_numaxes() >= 2:
-                axis_x = self.joystick.get_axis(0)
-                axis_y = self.joystick.get_axis(1)
-                if axis_x < -0.35: self.held["LEFT"] = True
-                if axis_x > 0.35: self.held["RIGHT"] = True
-                if axis_y < -0.35: self.held["UP"] = True
-                if axis_y > 0.35: self.held["DOWN"] = True
+            try:
+                num_axes = self.joystick.get_numaxes()
+                # Left Analog Stick (Axis 0 = Horizontal, Axis 1 = Vertical)
+                if num_axes >= 2:
+                    axis_x = self.joystick.get_axis(0)
+                    axis_y = self.joystick.get_axis(1)
+                    # Radial deadzone of 0.28 for clean 8-directional aiming
+                    if math.hypot(axis_x, axis_y) > 0.28:
+                        if axis_x < -0.28: self.held["LEFT"] = True
+                        if axis_x > 0.28:  self.held["RIGHT"] = True
+                        if axis_y < -0.28: self.held["UP"] = True
+                        if axis_y > 0.28:  self.held["DOWN"] = True
 
-            if self.joystick.get_numhats() > 0:
-                hat_x, hat_y = self.joystick.get_hat(0)
-                if hat_x < 0: self.held["LEFT"] = True
-                if hat_x > 0: self.held["RIGHT"] = True
-                if hat_y > 0: self.held["UP"] = True
-                if hat_y < 0: self.held["DOWN"] = True
+                # Left Trigger (Axis 4) & Right Trigger (Axis 5)
+                # Note: On Windows SDL2 XInput, triggers rest at -1.0 and go to +1.0 when pulled!
+                if num_axes >= 5 and self.joystick.get_axis(4) > 0.15:
+                    self.held["L"] = True
+                    self.held["R"] = True
+                if num_axes >= 6 and self.joystick.get_axis(5) > 0.15:
+                    self.held["R"] = True
 
-            num_btns = self.joystick.get_numbuttons()
-            if num_btns > 0 and self.joystick.get_button(0): self.held["B"] = True
-            if num_btns > 1 and self.joystick.get_button(1): self.held["A"] = True
-            if num_btns > 2 and self.joystick.get_button(2): self.held["Y"] = True
-            if num_btns > 5 and self.joystick.get_button(5): self.held["R"] = True
+                # Physical D-Pad (Hat 0)
+                if self.joystick.get_numhats() > 0:
+                    hat_x, hat_y = self.joystick.get_hat(0)
+                    if hat_x < 0: self.held["LEFT"] = True
+                    if hat_x > 0: self.held["RIGHT"] = True
+                    if hat_y > 0: self.held["UP"] = True
+                    if hat_y < 0: self.held["DOWN"] = True
 
+                # Face, Bumper & Menu Buttons (Xbox 360 / Series XInput layout)
+                num_btns = self.joystick.get_numbuttons()
+                # Button 0 (Xbox A - bottom) & Button 1 (Xbox B - right) -> Jump!
+                if num_btns > 0 and self.joystick.get_button(0): self.held["B"] = True
+                if num_btns > 1 and self.joystick.get_button(1): self.held["A"] = True
+                # Button 2 (Xbox X - left, SNES Y position) & Button 3 (Xbox Y - top, "Y" label) -> Tongue!
+                if num_btns > 2 and self.joystick.get_button(2): self.held["Y"] = True
+                if num_btns > 3 and self.joystick.get_button(3): self.held["Y"] = True
+                # Button 4 (LB) & Button 5 (RB) -> Spore Boomerang Special Weapon!
+                if num_btns > 4 and self.joystick.get_button(4):
+                    self.held["L"] = True
+                    self.held["R"] = True
+                if num_btns > 5 and self.joystick.get_button(5):
+                    self.held["R"] = True
+                # Button 6 (Back / View) -> SELECT (HUD Toggle)
+                if num_btns > 6 and self.joystick.get_button(6):
+                    self.held["SELECT"] = True
+                # Button 7 (Start / Menu) -> START (Pause / Confirm)
+                if num_btns > 7 and self.joystick.get_button(7):
+                    self.held["START"] = True
+            except pygame.error:
+                self.joystick = None
+
+        # 3. Compute Single-Frame Edge Triggers (just_pressed & just_released)
         for btn in self.held:
             self.just_pressed[btn] = self.held[btn] and not self.prev_held[btn]
             self.just_released[btn] = not self.held[btn] and self.prev_held[btn]
@@ -3103,7 +3160,7 @@ def draw_title_screen(surface, title_font, menu_font, selected_index, anim_timer
 
         surface.blit(item_img, (ix, iy))
 
-    hint_text = "[UP/DOWN] Select   [SPACE/A] Confirm   [X/J] 8-Way Tongue   [C/Shift] Spore"
+    hint_text = "[D-Pad/Stick] Move & Aim  [Xbox A/B] Jump  [Xbox X/Y] Tongue  [RB/RT] Spore"
     hint_img = menu_font.render(hint_text, True, (175, 210, 235))
     hx = (INTERNAL_WIDTH - hint_img.get_width()) // 2
     surface.blit(hint_img, (hx, INTERNAL_HEIGHT - 24))
@@ -3211,35 +3268,38 @@ def main():
         pulse_timer += 1
 
         # =====================================================================
-        # STATE A: TITLE SCREEN
+        # STATE A: TITLE SCREEN (Supports both Xbox Controller & Keyboard!)
         # =====================================================================
         if game_state == "TITLE":
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key in (pygame.K_UP, pygame.K_w):
-                        title_selected_index = (title_selected_index - 1) % 2
-                        audio.play_sfx("cursor")
-                    elif event.key in (pygame.K_DOWN, pygame.K_s):
-                        title_selected_index = (title_selected_index + 1) % 2
-                        audio.play_sfx("cursor")
-                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_k, pygame.K_z):
-                        audio.play_sfx("select")
-                        if title_selected_index == 0:
-                            game_mode = "ADVENTURE"
-                            world.warp_directly_to_room("level_1", player, camera, audio)
-                            player.hp = PLAYER_MAX_HP
-                            game_state = "PLAYING"
-                            audio.play_music("level")
-                        elif title_selected_index == 1:
-                            game_mode = "BUILDER"
-                            world.warp_directly_to_room("sandbox_room", player, camera, audio)
-                            player.hp = PLAYER_MAX_HP
-                            game_state = "PLAYING"
-                            audio.play_music("level")
-                    elif event.key == pygame.K_ESCAPE:
-                        running = False
+                controller.handle_hotplug_event(event)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
+
+            controller.update()
+
+            if controller.just_pressed["UP"]:
+                title_selected_index = (title_selected_index - 1) % 2
+                audio.play_sfx("cursor")
+            elif controller.just_pressed["DOWN"]:
+                title_selected_index = (title_selected_index + 1) % 2
+                audio.play_sfx("cursor")
+            elif controller.jump_just_pressed or controller.just_pressed["START"]:
+                audio.play_sfx("select")
+                if title_selected_index == 0:
+                    game_mode = "ADVENTURE"
+                    world.warp_directly_to_room("level_1", player, camera, audio)
+                    player.hp = PLAYER_MAX_HP
+                    game_state = "PLAYING"
+                    audio.play_music("level")
+                elif title_selected_index == 1:
+                    game_mode = "BUILDER"
+                    world.warp_directly_to_room("sandbox_room", player, camera, audio)
+                    player.hp = PLAYER_MAX_HP
+                    game_state = "PLAYING"
+                    audio.play_music("level")
 
             frog_preview = animations["right"]["idle"][0]
             draw_title_screen(
@@ -3256,14 +3316,9 @@ def main():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        game_state = "PAUSED"
-                        pause_selected_index = 0
-                        audio.play_sfx("cursor")
-                    elif event.key == pygame.K_TAB:
-                        show_hud = not show_hud
-                    elif event.key == pygame.K_p and is_builder_active:
+                controller.handle_hotplug_event(event)
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p and is_builder_active:
                         world.current_room.export_ascii_to_console()
                         audio.play_sfx("select")
                     elif event.key == pygame.K_b:
@@ -3289,6 +3344,15 @@ def main():
                     world.current_room.paint_tile_at_world_pos(world_mx, world_my, '.')
 
             controller.update()
+
+            # Pause via Xbox START button or Keyboard ESCAPE
+            if controller.just_pressed["START"]:
+                game_state = "PAUSED"
+                pause_selected_index = 0
+                audio.play_sfx("cursor")
+            # Toggle HUD via Xbox BACK/SELECT button or Keyboard TAB
+            elif controller.just_pressed["SELECT"]:
+                show_hud = not show_hud
 
             if world.is_transitioning:
                 world.update_transition(player, camera, audio)
@@ -3317,57 +3381,60 @@ def main():
             world.draw_fade_overlay(snes_canvas)
 
         # =====================================================================
-        # STATE C: IN-GAME PAUSE MENU
+        # STATE C: IN-GAME PAUSE MENU (Xbox Controller & Keyboard)
         # =====================================================================
         elif game_state == "PAUSED":
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key in (pygame.K_UP, pygame.K_w):
-                        pause_selected_index = (pause_selected_index - 1) % 3
-                        audio.play_sfx("cursor")
-                    elif event.key in (pygame.K_DOWN, pygame.K_s):
-                        pause_selected_index = (pause_selected_index + 1) % 3
-                        audio.play_sfx("cursor")
-                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_k, pygame.K_z):
-                        audio.play_sfx("select")
-                        if pause_selected_index == 0:
-                            game_state = "PLAYING"
-                        elif pause_selected_index == 1:
-                            game_state = "TITLE"
-                            audio.play_music("title")
-                        elif pause_selected_index == 2:
-                            running = False
-                    elif event.key == pygame.K_ESCAPE:
-                        game_state = "PLAYING"
-                        audio.play_sfx("cursor")
+                controller.handle_hotplug_event(event)
+
+            controller.update()
+
+            if controller.just_pressed["UP"]:
+                pause_selected_index = (pause_selected_index - 1) % 3
+                audio.play_sfx("cursor")
+            elif controller.just_pressed["DOWN"]:
+                pause_selected_index = (pause_selected_index + 1) % 3
+                audio.play_sfx("cursor")
+            elif controller.jump_just_pressed or controller.just_pressed["START"]:
+                audio.play_sfx("select")
+                if pause_selected_index == 0:
+                    game_state = "PLAYING"
+                elif pause_selected_index == 1:
+                    game_state = "TITLE"
+                    audio.play_music("title")
+                elif pause_selected_index == 2:
+                    running = False
 
             draw_pause_screen(snes_canvas, title_font, menu_font, pause_selected_index, pulse_timer)
 
         # =====================================================================
-        # STATE D: GAME OVER SCREEN
+        # STATE D: GAME OVER SCREEN (Xbox Controller & Keyboard)
         # =====================================================================
         elif game_state == "GAME_OVER":
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_k, pygame.K_z):
-                        player.hp = PLAYER_MAX_HP
-                        spawn_x, spawn_y = world.current_room.default_spawn
-                        player.teleport_to_room(spawn_x, spawn_y)
-                        world.current_room.spawn_enemies()
-                        camera.snap_to(player)
-                        game_state = "PLAYING"
-                        audio.play_sfx("select")
-                        if world.current_room.room_id == "boss_sanctum":
-                            audio.play_music("boss")
-                        else:
-                            audio.play_music("level")
-                    elif event.key == pygame.K_ESCAPE:
-                        game_state = "TITLE"
-                        audio.play_music("title")
+                controller.handle_hotplug_event(event)
+
+            controller.update()
+
+            if controller.jump_just_pressed or controller.just_pressed["START"]:
+                player.hp = PLAYER_MAX_HP
+                spawn_x, spawn_y = world.current_room.default_spawn
+                player.teleport_to_room(spawn_x, spawn_y)
+                world.current_room.spawn_enemies()
+                camera.snap_to(player)
+                game_state = "PLAYING"
+                audio.play_sfx("select")
+                if world.current_room.room_id == "boss_sanctum":
+                    audio.play_music("boss")
+                else:
+                    audio.play_music("level")
+            elif controller.just_pressed["SELECT"]:
+                game_state = "TITLE"
+                audio.play_music("title")
 
             draw_game_over_screen(snes_canvas, title_font, menu_font, pulse_timer)
 
