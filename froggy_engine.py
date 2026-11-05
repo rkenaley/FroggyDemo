@@ -81,22 +81,23 @@ WINDOW_HEIGHT = INTERNAL_HEIGHT * WINDOW_SCALE # 720 px  (720p HD Height)
 TARGET_FPS = 60
 
 # --- Platformer Physics Tuning (Measured in Pixels per Frame at 60 FPS) ---
-GRAVITY = 0.38
-MAX_FALL_SPEED = 8.5
-WALL_SLIDE_SPEED = 1.6
-MOVE_ACCEL = 0.55
-AIR_ACCEL = 0.38
-GROUND_FRICTION = 0.78
-AIR_DRAG = 0.94
-MAX_RUN_SPEED = 3.6
-JUMP_VELOCITY = -7.6
-DOUBLE_JUMP_VELOCITY = -6.8
-VARIABLE_JUMP_CUTOFF = 0.45
-WALL_JUMP_X_SPEED = 4.4
-WALL_JUMP_Y_SPEED = -7.2
-WALL_JUMP_LOCK_FRAMES = 10
-COYOTE_TIME_FRAMES = 6
-JUMP_BUFFER_FRAMES = 6
+# Tuned down slightly per user request for lush, readable 16-bit platformer feel:
+GRAVITY = 0.28                 # Downward acceleration added to velocity_y each frame (soft floaty feel)
+MAX_FALL_SPEED = 6.8           # Terminal velocity so falls feel smooth and readable
+WALL_SLIDE_SPEED = 1.4         # Reduced fall speed when clinging to a vertical wall
+MOVE_ACCEL = 0.52              # How fast Froggy builds horizontal speed on the ground
+AIR_ACCEL = 0.36               # Horizontal authority while in mid-air
+GROUND_FRICTION = 0.80         # Multiplier applied when D-Pad is neutral on the ground
+AIR_DRAG = 0.95                # Multiplier applied when D-Pad is neutral in the air
+MAX_RUN_SPEED = 3.6            # Top horizontal running speed
+JUMP_VELOCITY = -6.5           # Instant upward velocity when pressing A or B (tuned for 0.28 gravity)
+DOUBLE_JUMP_VELOCITY = -5.8    # Boost for the second mid-air jump
+VARIABLE_JUMP_CUTOFF = 0.45    # Multiplies upward speed if player releases A/B early
+WALL_JUMP_X_SPEED = 4.2        # Horizontal push-off speed when jumping off a wall
+WALL_JUMP_Y_SPEED = -6.4       # Vertical launch speed when jumping off a wall
+WALL_JUMP_LOCK_FRAMES = 10     # Frames of locked horizontal input so you cleanly leave the wall
+COYOTE_TIME_FRAMES = 6         # Grace frames allowing a jump just after walking off a ledge
+JUMP_BUFFER_FRAMES = 6         # Remembers a jump press made slightly before touching the ground
 
 # --- Super Castlevania IV Tongue & Pendulum Grapple Constants ---
 TONGUE_EXTEND_SPEED = 14.0
@@ -114,6 +115,7 @@ PLAYER_MAX_HP = 5
 PLAYER_INVULN_FRAMES = 65
 ENEMY_STUN_FRAMES = 210
 BOSS_MAX_HP = 6
+BOSS_MAX_HP_HOUND = 8
 BOSS_WEAK_EXPOSED_FRAMES = 210
 
 # --- Metroidvania Screen Transitions ---
@@ -125,6 +127,7 @@ COLOR_BG_GRID = (26, 38, 56)
 COLOR_TONGUE_PINK = (242, 107, 148)
 COLOR_TONGUE_TIP = (255, 175, 205)
 COLOR_SPORE_CYAN = (80, 245, 210)
+COLOR_BOOMERANG_RED = (255, 60, 80)
 COLOR_HUD_TEXT = (230, 245, 255)
 COLOR_DOOR_GLOW = (90, 235, 255)
 COLOR_HEART_RED = (235, 65, 85)
@@ -346,6 +349,71 @@ class RetroAudioEngine:
             noise = (random.random() * 2.0 - 1.0) * 0.22
             samples.append((saw * 0.32 + sub + noise) * env)
         sfx['boss_roar'] = self._create_wav_sound(samples)
+
+        # 16. Water Splash: Soft bubbly plunge & filtered water noise
+        n = int(sr * 0.22)
+        samples = []
+        for i in range(n):
+            t = i / sr
+            f = 240.0 - t * 480.0 + math.sin(2.0 * math.pi * 32.0 * t) * 60.0
+            sine = math.sin(2.0 * math.pi * max(40.0, f) * t) * 0.35
+            noise = (random.random() * 2.0 - 1.0) * 0.25 * max(0.0, 1.0 - t * 18.0)
+            env = max(0.0, 1.0 - t / 0.22)
+            samples.append((sine + noise) * env)
+        sfx['splash'] = self._create_wav_sound(samples)
+
+        # 17. Mario-Style Stomp Impact: Thud + rising spring pop
+        n = int(sr * 0.16)
+        samples = []
+        for i in range(n):
+            t = i / sr
+            f = 120.0 + (t / 0.16) * 380.0
+            tri = 4.0 * abs(((f * t) % 1.0) - 0.5) - 1.0
+            thud = math.sin(2.0 * math.pi * 85.0 * t) * max(0.0, 1.0 - t * 45.0)
+            env = (1.0 - t / 0.16)
+            samples.append((tri * 0.35 + thud * 0.55) * env)
+        sfx['stomp'] = self._create_wav_sound(samples)
+
+        # 18. Power-Up Fanfare: Triumphant ascending arpeggio (C4 - E4 - G4 - C5)
+        n = int(sr * 0.38)
+        samples = []
+        fanfare_notes = [261.63, 329.63, 392.00, 523.25]
+        for i in range(n):
+            t = i / sr
+            idx = min(3, int(t / 0.09))
+            f = fanfare_notes[idx]
+            local_t = t % 0.09
+            sq = (1.0 if ((f * t) % 1.0) < 0.45 else -1.0) * 0.28
+            sine = math.sin(2.0 * math.pi * f * t) * 0.22
+            env = max(0.0, 1.0 - local_t / 0.09)
+            samples.append((sq + sine) * env)
+        sfx['powerup'] = self._create_wav_sound(samples)
+
+        # 19. Dread Hound Bark: Deep mechanical beast bark with rapid pitch drop
+        n = int(sr * 0.24)
+        samples = []
+        for i in range(n):
+            t = i / sr
+            f = max(65.0, 240.0 - t * 750.0)
+            saw = 2.0 * ((f * t) % 1.0) - 1.0
+            noise = (random.random() * 2.0 - 1.0) * 0.35
+            env = max(0.0, 1.0 - t / 0.24)
+            samples.append((saw * 0.4 + noise * 0.3) * env)
+        sfx['hound_bark'] = self._create_wav_sound(samples)
+
+        # 20. Dread Hound Colossus Roar: Low sub-bass growl & resonant beast tremor
+        n = int(sr * 0.65)
+        samples = []
+        for i in range(n):
+            t = i / sr
+            mod = math.sin(2.0 * math.pi * 18.0 * t) * 35.0
+            f = max(45.0, 160.0 - t * 140.0 + mod)
+            saw = 2.0 * ((f * t) % 1.0) - 1.0
+            sub = math.sin(2.0 * math.pi * 52.0 * t) * 0.5
+            noise = (random.random() * 2.0 - 1.0) * 0.32
+            env = math.sin(math.pi * (t / 0.65)) * (1.0 - t * 0.5)
+            samples.append((saw * 0.35 + sub + noise) * env)
+        sfx['hound_roar'] = self._create_wav_sound(samples)
 
         return sfx
 
@@ -773,6 +841,7 @@ class AssetManager:
             "idle": [
                 self._load_png("sprites", "froggy_idle_0.png"),
                 self._load_png("sprites", "froggy_idle_1.png"),
+                self._load_png("sprites", "froggy_idle_2.png"),
             ],
             "run": [
                 self._load_png("sprites", "froggy_run_0.png"),
@@ -783,28 +852,74 @@ class AssetManager:
             "jump": [self._load_png("sprites", "froggy_jump_0.png")],
             "wall_slide": [self._load_png("sprites", "froggy_wall_0.png")],
             "tongue": [self._load_png("sprites", "froggy_tongue_0.png")],
+            "swim": [
+                self._load_png("sprites", "froggy_swim_0.png"),
+                self._load_png("sprites", "froggy_swim_1.png"),
+            ],
         }
         animations = {"right": {}, "left": {}}
         for state_name, surface_list in raw_frames.items():
-            animations["right"][state_name] = surface_list
+            valid_list = [s for s in surface_list if s is not None]
+            if not valid_list:
+                fallback = pygame.Surface((24, 24), pygame.SRCALPHA)
+                fallback.fill((65, 175, 75))
+                valid_list = [fallback]
+            animations["right"][state_name] = valid_list
             animations["left"][state_name] = [
-                pygame.transform.flip(surf, True, False) for surf in surface_list
+                pygame.transform.flip(surf, True, False) for surf in valid_list
             ]
         return animations
 
     def build_enemy_animations(self):
-        """Loads Spiked Moss Beetle, Neon Buzzfly, and 36x36 Emperor Mantis sprites."""
+        """Loads all troop enemies, Colossus bosses, and power-up relics."""
+        # 1. Spiked Moss Beetle
         b0 = self._load_png("sprites", "beetle_0.png")
         b1 = self._load_png("sprites", "beetle_1.png")
+        if b0 is None: b0 = pygame.Surface((24, 20), pygame.SRCALPHA)
+        if b1 is None: b1 = b0
         b_stun = pygame.transform.flip(b0, False, True)
 
+        # 2. Neon Buzzfly
         f0 = self._load_png("sprites", "fly_0.png")
         f1 = self._load_png("sprites", "fly_1.png")
+        if f0 is None: f0 = pygame.Surface((20, 20), pygame.SRCALPHA)
+        if f1 is None: f1 = f0
 
+        # 3. Soldier Ant ('N')
+        a0 = self._load_png("sprites", "ant_0.png")
+        a1 = self._load_png("sprites", "ant_1.png")
+        a_chg = self._load_png("sprites", "ant_charge.png")
+        if a0 is None: a0 = pygame.Surface((24, 22), pygame.SRCALPHA)
+        if a1 is None: a1 = a0
+        if a_chg is None: a_chg = a0
+        a_stun = pygame.transform.flip(a0, False, True)
+
+        # 4. Shadow Spider ('W')
+        sp0 = self._load_png("sprites", "spider_0.png")
+        sp1 = self._load_png("sprites", "spider_1.png")
+        sp_drop = self._load_png("sprites", "spider_drop.png")
+        if sp0 is None: sp0 = pygame.Surface((24, 22), pygame.SRCALPHA)
+        if sp1 is None: sp1 = sp0
+        if sp_drop is None: sp_drop = sp0
+        sp_stun = pygame.transform.flip(sp0, False, True)
+
+        # 5. Emperor Mantis Boss ('M')
         m_arm_r = self._load_png("sprites", "mantis_armored.png")
-        m_arm_l = pygame.transform.flip(m_arm_r, True, False)
+        m_arm_l = pygame.transform.flip(m_arm_r, True, False) if m_arm_r else None
         m_exp_r = self._load_png("sprites", "mantis_exposed.png")
-        m_exp_l = pygame.transform.flip(m_exp_r, True, False)
+        m_exp_l = pygame.transform.flip(m_exp_r, True, False) if m_exp_r else None
+
+        # 6. The Dread Hound Colossus Boss ('H')
+        h_idle = self._load_png("sprites", "hound_idle.png")
+        h_lunge = self._load_png("sprites", "hound_lunge.png")
+        h_dazed = self._load_png("sprites", "hound_dazed.png")
+        h_howl = self._load_png("sprites", "hound_howl.png")
+        h_proj = self._load_png("sprites", "hound_projectile.png")
+
+        # 7. Collectible Power-ups & Special Weapon Sprites
+        p_boots = self._load_png("sprites", "powerup_boots.png")
+        p_red_boom = self._load_png("sprites", "powerup_red_boomerang.png")
+        boom_red = self._load_png("sprites", "boomerang_red.png")
 
         return {
             "beetle": {
@@ -816,11 +931,35 @@ class AssetManager:
                 "right": [f0, f1],
                 "left": [pygame.transform.flip(f0, True, False), pygame.transform.flip(f1, True, False)],
             },
+            "ant": {
+                "right": [a0, a1],
+                "left": [pygame.transform.flip(a0, True, False), pygame.transform.flip(a1, True, False)],
+                "charge_right": a_chg,
+                "charge_left": pygame.transform.flip(a_chg, True, False),
+                "stunned": [a_stun, pygame.transform.flip(a_stun, True, False)],
+            },
+            "spider": {
+                "idle": [sp0, sp1],
+                "drop": sp_drop,
+                "stunned": [sp_stun],
+            },
             "mantis": {
                 "armored_right": m_arm_r,
                 "armored_left": m_arm_l,
                 "exposed_right": m_exp_r,
                 "exposed_left": m_exp_l,
+            },
+            "hound": {
+                "idle": h_idle,
+                "lunge": h_lunge,
+                "dazed": h_dazed,
+                "howl": h_howl,
+                "projectile": h_proj,
+            },
+            "powerups": {
+                "stomping_boots": p_boots,
+                "red_boomerang": p_red_boom,
+                "boomerang_red": boom_red,
             },
         }
 
@@ -983,6 +1122,7 @@ WORLD_BLUEPRINTS = {
 
     # -------------------------------------------------------------------------
     # ROOM 2: SUNKEN FROG TEMPLE HALL
+    # Features swimming lagoons and the ancient Stomping Boots power-up pedestal!
     # -------------------------------------------------------------------------
     "entrance_hall": {
         "title": "2. SUNKEN FROG TEMPLE HALL",
@@ -1016,8 +1156,8 @@ WORLD_BLUEPRINTS = {
             "#.........F......................................F.........#",
             "#.............######....................######.............#",
             "#..........................................................#",
-            "#..........................................................#",
-            "#.............................................E............#",
+            "#..................J.......................................#", # 'J' = Stomping Boots Relic Pedestal!
+            "#...............######........................N............#", # 'N' = Soldier Ant Patrol
             "#..........................................######..........#",
             "#....................E.....................................#",
             "#.................######...................................#",
@@ -1025,13 +1165,14 @@ WORLD_BLUEPRINTS = {
             "A..........................................................B",
             "A###.......................................E...............B",
             "#..........................................#######.........#",
-            "########################~~~~~~~~~~~~########################",
+            "########################~~~~~~~~~~~~########################", # Swimming lagoon!
             "############################################################",
         ],
     },
 
     # -------------------------------------------------------------------------
     # ROOM 3: VINE CHIMNEY TOWER
+    # High vertical climb guarded by Soldier Ants and ceiling Shadow Spiders!
     # -------------------------------------------------------------------------
     "chimney_tower": {
         "title": "3. VINE CHIMNEY ASCENT",
@@ -1054,10 +1195,10 @@ WORLD_BLUEPRINTS = {
         },
         "ascii_grid": [
             "############################################",
-            "#..........................................#",
+            "#........W......................W..........#", # 'W' = Ceiling Shadow Spiders!
             "#.....................G....................#",
             "#..........................................C",
-            "#..................................E.......C",
+            "#..................................N.......C",
             "#............................###############",
             "#..................###.....#...............#",
             "#........F.........###.....#...............#",
@@ -1068,10 +1209,10 @@ WORLD_BLUEPRINTS = {
             "#..................###...........F.........#",
             "#..................###...............E.....#",
             "#..................###............######...#",
-            "#........F.........###.....................#",
+            "#........W.........###.....................#",
             "#..................###.....................#",
             "#..................###.............G.......#",
-            "#..........E.......###.....................#",
+            "#..........N.......###.....................#",
             "#.......######.....###.....................#",
             "#..................###............E........#",
             "B..............................######......#",
@@ -1082,7 +1223,8 @@ WORLD_BLUEPRINTS = {
     },
 
     # -------------------------------------------------------------------------
-    # ROOM 4: BIOLUMINESCENT GRAPPLE CAVERN
+    # ROOM 4: BIOLUMINESCENT GRAPPLE CAVERN (DOUBLE-GRAPPLE CHALLENGE)
+    # Mid-air void requiring two consecutive grapple swings to reach Door D!
     # -------------------------------------------------------------------------
     "grapple_cavern": {
         "title": "4. BIOLUMINESCENT GRAPPLE CAVERN",
@@ -1104,41 +1246,42 @@ WORLD_BLUEPRINTS = {
             },
         },
         "ascii_grid": [
-            "############################################################",
-            "#..........................................................#",
-            "#..........................................................#",
-            "C...........G.............G.............G.............G....#",
-            "C..........................................................#",
-            "#########..................................................#",
-            "#.................F.............F.............F............#",
-            "#...................G.............G.............G..........#",
-            "#..........................................................#",
-            "#........................................................T.#",
-            "#..........E..........................................######",
-            "#.......#####.............F.............F..................#",
-            "#..........................................................#",
-            "#...................###.........###.........###............#",
-            "#...................###.........###.........###............D",
-            "#...................###.........###.........###..........E.D",
-            "#...................###.........###.........###.......#####D",
-            "#...................###.........###.........###............#",
-            "#...................###.........###.........###............#",
-            "#...................###.........###.........###............#",
-            "#...................###.........###.........###............#",
-            "###################~~~~~~~~~###~~~~~~~~~###~~~~~~~~~~~~~~~~#",
-            "############################################################",
+            "####################################################################",
+            "#..................................................................#",
+            "#..................................................................#",
+            "C..................................................................#",
+            "C............G...............G.....................................#",
+            "######.............................................................#",
+            "#..................................................................#",
+            "#..................................................................#",
+            "#..................................................................#",
+            "#..................................................................#",
+            "#.........######.............................######................#",
+            "#..................................................................#",
+            "#..................................................................#",
+            "#..................G...............G...............................#", # DOUBLE GRAPPLE IN MID-AIR!
+            "#..................................................................#",
+            "#..................................................................#",
+            "#...E...........................................................E..D",
+            "#######.......................................................######D",
+            "#..................................................................D",
+            "#..................................................................#",
+            "#..................................................................#",
+            "#################~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##################", # Swimming lagoon safety net!
+            "####################################################################",
         ],
     },
 
     # -------------------------------------------------------------------------
-    # ROOM 5: EMPEROR MANTIS SANCTUM (DEDICATED BOSS LAIR)
+    # ROOM 5: EMPEROR MANTIS SANCTUM (FIRST BOSS LAIR)
+    # Defeating the Emperor Mantis drops the Red Spore Boomerang Relic!
     # -------------------------------------------------------------------------
     "boss_sanctum": {
         "title": "5. EMPEROR MANTIS SANCTUM",
         "theme": "sanctum",
         "bg_color": (34, 12, 28),
         "map_coords": (3, 1),
-        "boss_trigger_x": 60,  # Immediate boss awakening upon entering the Sanctum!
+        "boss_trigger_x": 60,
         "doors": {
             "D": {
                 "target_room": "grapple_cavern",
@@ -1147,7 +1290,7 @@ WORLD_BLUEPRINTS = {
                 "spawn_offset_y": 0,
             },
             "V": {
-                "target_room": "victory_chamber",
+                "target_room": "hound_sanctum",
                 "target_door": "V",
                 "spawn_offset_x": 26,
                 "spawn_offset_y": 0,
@@ -1160,7 +1303,7 @@ WORLD_BLUEPRINTS = {
             "#.........G..........G..........G..........#",
             "#..........................................#",
             "#..........................................#",
-            "#..............................M...........#",
+            "#..............................M...........#", # 'M' = Emperor Mantis Boss!
             "#..........................................#",
             "#....######......................######....#",
             "#..........................................#",
@@ -1181,17 +1324,69 @@ WORLD_BLUEPRINTS = {
     },
 
     # -------------------------------------------------------------------------
+    # ROOM 5B: THE HOUND'S SANCTUM (SECOND BOSS - 16-BIT WALL COLOSSUS)
+    # The Dread Hound: Colossal snapping jaw boss anchored to the right wall!
+    # -------------------------------------------------------------------------
+    "hound_sanctum": {
+        "title": "5B. THE HOUND'S SANCTUM",
+        "theme": "sanctum",
+        "bg_color": (32, 14, 26),
+        "map_coords": (4, 1),
+        "boss_trigger_x": 80,
+        "doors": {
+            "V": {
+                "target_room": "boss_sanctum",
+                "target_door": "V",
+                "spawn_offset_x": -26,
+                "spawn_offset_y": 0,
+            },
+            "K": {
+                "target_room": "victory_chamber",
+                "target_door": "K",
+                "spawn_offset_x": 26,
+                "spawn_offset_y": 0,
+            },
+        },
+        "ascii_grid": [
+            "############################################################",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#............G...................G...................G.....#", # Overhead grapple rings
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "#..........................................................#",
+            "V......T.............................................H.....K", # 'H' = The Dread Hound Boss!
+            "V...#######.......................................########.K",
+            "V..........................................................K",
+            "#..........................................................#",
+            "############################################################",
+            "############################################################",
+            "############################################################",
+        ],
+    },
+
+    # -------------------------------------------------------------------------
     # ROOM 6: SACRED LILYPAD SANCTUARY (VICTORY REWARD CHAMBER)
+    # Sacred tranquil haven after vanquishing both ancient colossi!
     # -------------------------------------------------------------------------
     "victory_chamber": {
         "title": "6. SACRED LILYPAD SANCTUARY",
         "theme": "canopy",
         "bg_color": (12, 34, 30),
-        "map_coords": (4, 1),
+        "map_coords": (5, 1),
         "doors": {
-            "V": {
-                "target_room": "boss_sanctum",
-                "target_door": "V",
+            "K": {
+                "target_room": "hound_sanctum",
+                "target_door": "K",
                 "spawn_offset_x": -26,
                 "spawn_offset_y": 0,
             },
@@ -1219,9 +1414,9 @@ WORLD_BLUEPRINTS = {
             "#..........................................#",
             "#.........F......................F.........#",
             "#.......#####..................#####.......#",
-            "V..........................................P",
-            "V..........................................P",
-            "V..........................................P",
+            "K..........................................P",
+            "K..........................................P",
+            "K..........................................P",
             "#..######################################..#",
             "############################################",
             "############################################",
@@ -1304,19 +1499,27 @@ class Particle:
 class SporeBoomerang:
     """
     Froggy's Special Weapon (R Button):
-    Launches a glowing cyan bioluminescent spore along the 8-way D-Pad aim
-    vector, then accelerates backward so it curves back like a boomerang!
+    Launches a glowing bioluminescent spore along the 8-way D-Pad aim
+    vector, then decelerates and accelerates backward to return like a boomerang!
+    
+    When upgraded with the Red Spore Boomerang Relic (vanquishing the Mantis):
+      - Fires up to 4 simultaneous boomerangs
+      - Flies with increased speed (8.2 px/frame) and extended range (175 frames)
+      - Crimson trail and piercing force that damages bosses and shatters armor!
     """
-    def __init__(self, x, y, dir_x, dir_y):
+    def __init__(self, x, y, dir_x, dir_y, is_red=False):
         self.x = float(x)
         self.y = float(y)
-        self.vx = dir_x * 6.6
-        self.vy = dir_y * 6.6
-        self.return_ax = -dir_x * 0.14
-        self.return_ay = -dir_y * 0.14
+        self.is_red = is_red
+        speed = 8.2 if is_red else 6.6
+        self.vx = dir_x * speed
+        self.vy = dir_y * speed
+        accel = 0.08 if is_red else 0.14
+        self.return_ax = -dir_x * accel
+        self.return_ay = -dir_y * accel
         self.age = 0
-        self.max_age = 115
-        self.radius = 5
+        self.max_age = 175 if is_red else 115
+        self.radius = 6 if is_red else 5
         self.alive = True
 
     def update(self, room, audio=None):
@@ -1326,21 +1529,28 @@ class SporeBoomerang:
         self.x += self.vx
         self.y += self.vy
 
-        hit_box = pygame.Rect(int(self.x - 6), int(self.y - 6), 12, 12)
+        # Trail particles
+        if self.age % 4 == 0:
+            p_col = COLOR_BOOMERANG_RED if self.is_red else COLOR_SPORE_CYAN
+            room.spawn_particle_burst(self.x, self.y, p_col, count=2)
+
+        hit_box = pygame.Rect(int(self.x - 7), int(self.y - 7), 14, 14)
 
         for enemy in room.enemies:
-            if enemy.alive and enemy.state == "PATROL" and enemy.rect.colliderect(hit_box):
+            if enemy.alive and enemy.state not in ("YANKED",) and not enemy.is_boss and enemy.rect.colliderect(hit_box):
                 enemy.stun(knockback_dir_x=(1.0 if self.vx >= 0 else -1.0))
-                room.spawn_particle_burst(enemy.center_x, enemy.center_y, COLOR_SPORE_CYAN, count=10)
+                p_col = COLOR_BOOMERANG_RED if self.is_red else COLOR_SPORE_CYAN
+                room.spawn_particle_burst(enemy.center_x, enemy.center_y, p_col, count=10)
                 if audio:
                     audio.play_sfx("stun")
 
         boss = room.get_active_boss()
         if boss and boss.alive and boss.awakened and boss.rect.colliderect(hit_box):
-            if boss.hit_by_spore_boomerang(room):
-                self.alive = False
-                if audio:
-                    audio.play_sfx("stun")
+            if hasattr(boss, "hit_by_spore_boomerang"):
+                if boss.hit_by_spore_boomerang(room, is_red=self.is_red):
+                    self.alive = False
+                    if audio:
+                        audio.play_sfx("stun")
 
         if self.age >= self.max_age:
             self.alive = False
@@ -1348,16 +1558,126 @@ class SporeBoomerang:
     def draw(self, surface, camera_x, camera_y, assets=None):
         screen_x = int(self.x - camera_x)
         screen_y = int(self.y - camera_y)
-        if assets and "cyan" in assets.lights:
-            lt = assets.lights["cyan"]
+        l_key = "crimson" if self.is_red else "cyan"
+        if assets and l_key in assets.lights:
+            lt = assets.lights[l_key]
             surface.blit(lt, (screen_x - lt.get_width() // 2, screen_y - lt.get_height() // 2), special_flags=pygame.BLEND_RGB_ADD)
-        angle = self.age * 0.35
+        
+        main_col = COLOR_BOOMERANG_RED if self.is_red else COLOR_SPORE_CYAN
+        angle = self.age * (0.45 if self.is_red else 0.35)
         for i in range(4):
             blade_angle = angle + i * (math.pi * 0.5)
-            bx = screen_x + int(math.cos(blade_angle) * 6)
-            by = screen_y + int(math.sin(blade_angle) * 6)
-            pygame.draw.line(surface, COLOR_SPORE_CYAN, (screen_x, screen_y), (bx, by), 2)
+            length = 7 if self.is_red else 6
+            bx = screen_x + int(math.cos(blade_angle) * length)
+            by = screen_y + int(math.sin(blade_angle) * length)
+            pygame.draw.line(surface, main_col, (screen_x, screen_y), (bx, by), 2)
         pygame.draw.circle(surface, (255, 255, 255), (screen_x, screen_y), 2)
+
+
+class HoundFireball:
+    """Cursed fireball launched by The Dread Hound Colossus."""
+    def __init__(self, x, y, vx, vy, is_flame=False):
+        self.x = float(x)
+        self.y = float(y)
+        self.vx = float(vx)
+        self.vy = float(vy)
+        self.is_flame = is_flame
+        self.radius = 7
+        self.age = 0
+        self.max_age = 180
+        self.alive = True
+
+    @property
+    def rect(self):
+        return pygame.Rect(int(self.x - 6), int(self.y - 6), 12, 12)
+
+    def update(self, room):
+        self.age += 1
+        self.x += self.vx
+        self.y += self.vy
+        if self.is_flame:
+            self.y += math.sin(self.age * 0.14) * 0.9
+        if self.age >= self.max_age or room.is_point_inside_solid(self.x, self.y):
+            self.alive = False
+            room.spawn_particle_burst(self.x, self.y, (255, 90, 50), count=6)
+
+    def draw(self, surface, camera_x, camera_y, assets=None):
+        sx = int(self.x - camera_x)
+        sy = int(self.y - camera_y)
+        if assets and "crimson" in assets.lights:
+            lt = assets.lights["crimson"]
+            surface.blit(lt, (sx - lt.get_width() // 2, sy - lt.get_height() // 2), special_flags=pygame.BLEND_RGB_ADD)
+        sprite = assets._load_png("sprites", "hound_projectile.png") if assets else None
+        if sprite:
+            surface.blit(sprite, (sx - sprite.get_width() // 2, sy - sprite.get_height() // 2))
+        else:
+            pygame.draw.circle(surface, (255, 55, 45), (sx, sy), self.radius)
+            pygame.draw.circle(surface, (255, 235, 90), (sx, sy), 3)
+
+
+class CollectiblePowerup:
+    """
+    Collectible Metroidvania Relics:
+      - 'stomping_boots': Enables Mario-style enemy stomping by jumping on top of them.
+      - 'red_boomerang': Upgrades Spore Boomerang to 4 simultaneous shots, extended range & higher damage.
+    """
+    def __init__(self, x, y, kind, assets):
+        self.x = float(x)
+        self.y = float(y)
+        self.kind = kind  # "stomping_boots" or "red_boomerang"
+        self.assets = assets
+        self.width = 20
+        self.height = 20
+        self.rect = pygame.Rect(int(self.x), int(self.y), self.width, self.height)
+        self.anim_timer = 0
+        self.collected = False
+
+    @property
+    def center_x(self):
+        return self.x + self.width * 0.5
+
+    @property
+    def center_y(self):
+        return self.y + self.height * 0.5
+
+    def update(self, player, room, audio=None):
+        if self.collected:
+            return
+        self.anim_timer += 1
+        hover_offset = math.sin(self.anim_timer * 0.08) * 3.0
+        self.rect.y = int(self.y + hover_offset)
+
+        if self.rect.colliderect(player.rect):
+            self.collected = True
+            if self.kind == "stomping_boots":
+                player.has_stomping_boots = True
+                room.spawn_particle_burst(self.center_x, self.center_y, (255, 215, 70), count=25)
+                room.show_banner("POWER-UP: STOMPING BOOTS! JUMP ON TOP OF FOES TO CRUSH THEM!")
+            elif self.kind == "red_boomerang":
+                player.has_red_boomerang = True
+                room.spawn_particle_burst(self.center_x, self.center_y, (255, 60, 80), count=25)
+                room.show_banner("UPGRADE: RED SPORE BOOMERANG! QUAD SHOT & PIERCING POWER!")
+
+            if audio:
+                audio.play_sfx("powerup")
+
+    def draw(self, surface, camera_x, camera_y):
+        if self.collected:
+            return
+        sx = int(self.x - camera_x)
+        sy = int(self.rect.y - camera_y)
+        light_key = "gold" if self.kind == "stomping_boots" else "crimson"
+        if self.assets and light_key in self.assets.lights:
+            lt = self.assets.lights[light_key]
+            surface.blit(lt, (sx + self.width // 2 - lt.get_width() // 2, sy + self.height // 2 - lt.get_height() // 2), special_flags=pygame.BLEND_RGB_ADD)
+
+        sprite_name = "powerup_boots.png" if self.kind == "stomping_boots" else "powerup_red_boomerang.png"
+        sprite = self.assets._load_png("sprites", sprite_name) if self.assets else None
+        if sprite:
+            surface.blit(sprite, (sx - 2, sy - 2))
+        else:
+            col = (255, 215, 70) if self.kind == "stomping_boots" else (255, 60, 80)
+            pygame.draw.rect(surface, col, (sx, sy, self.width, self.height), border_radius=4)
 
 
 class BossScytheWave:
@@ -1434,6 +1754,11 @@ class BaseEnemy:
         self.stun_timer = ENEMY_STUN_FRAMES
         self.vx = knockback_dir_x * 1.8
         self.vy = -3.8
+
+    def stomp_kill(self, room):
+        """Mario-style stomp: defeats enemy and scatters star particles."""
+        self.alive = False
+        room.spawn_particle_burst(self.center_x, self.center_y, (255, 230, 90), count=14)
 
 
 class BossEnergyPearl(BaseEnemy):
@@ -1587,6 +1912,224 @@ class BuzzFly(BaseEnemy):
         surface.blit(sprite, (sx, sy))
 
 
+class SoldierAnt(BaseEnemy):
+    """
+    Soldier Ant ('N') - Armored Ground Charger:
+    Patrols stone platforms, sensing ledges and walls so it never falls off cliffs.
+    When Froggy enters its horizontal line-of-sight, the ant stops, quivers its
+    antennae, and charges forward with snapping mandibles at high velocity!
+    Can be stunned with the tongue/boomerang, eaten, or stomped with Stomping Boots.
+    """
+    def __init__(self, spawn_x, spawn_y, enemy_anims):
+        super().__init__(spawn_x, spawn_y + 2, width=18, height=16)
+        self.anims = enemy_anims.get("ant", {})
+        self.patrol_speed = 0.95
+        self.charge_speed = 3.2
+        self.facing_right = True
+        self.vx = self.patrol_speed
+        self.state = "PATROL"  # "PATROL", "WINDUP", "CHARGING", "STUNNED", "YANKED"
+        self.windup_timer = 0
+        self.charge_timer = 0
+        self.can_yank_immediately = False
+
+    def update(self, room):
+        self.anim_timer += 1
+        if self.state == "YANKED":
+            return
+
+        if self.state == "STUNNED":
+            self.stun_timer -= 1
+            self.vx *= 0.88
+            self.vy = min(self.vy + GRAVITY, MAX_FALL_SPEED)
+            self._move_and_collide(room, turn_at_ledges=False)
+            if self.stun_timer <= 0:
+                self.state = "PATROL"
+            return
+
+        player = room.active_player_ref
+
+        if self.state == "PATROL":
+            self.vx = self.patrol_speed if self.facing_right else -self.patrol_speed
+            self.vy = min(self.vy + GRAVITY, MAX_FALL_SPEED)
+            self._move_and_collide(room, turn_at_ledges=True)
+
+            # Line of Sight detection to initiate mandibular charge!
+            if player and abs(player.center_y - self.center_y) < 24:
+                dist_x = player.center_x - self.center_x
+                if (self.facing_right and 0 < dist_x < 140) or (not self.facing_right and -140 < dist_x < 0):
+                    self.state = "WINDUP"
+                    self.windup_timer = 18
+                    self.vx = 0.0
+
+        elif self.state == "WINDUP":
+            self.windup_timer -= 1
+            self.vy = min(self.vy + GRAVITY, MAX_FALL_SPEED)
+            self._move_and_collide(room, turn_at_ledges=False)
+            if self.windup_timer <= 0:
+                self.state = "CHARGING"
+                self.charge_timer = 65
+                self.vx = self.charge_speed if self.facing_right else -self.charge_speed
+
+        elif self.state == "CHARGING":
+            self.charge_timer -= 1
+            self.vy = min(self.vy + GRAVITY, MAX_FALL_SPEED)
+            self._move_and_collide(room, turn_at_ledges=False)
+            if self.charge_timer <= 0:
+                self.state = "PATROL"
+                self.facing_right = not self.facing_right
+
+    def _move_and_collide(self, room, turn_at_ledges):
+        self.x += self.vx
+        self.rect.x = int(round(self.x))
+        hit_wall = False
+        for tile in room.solid_tiles:
+            if self.rect.colliderect(tile):
+                if self.vx > 0:
+                    self.rect.right = tile.left
+                    self.facing_right = False
+                elif self.vx < 0:
+                    self.rect.left = tile.right
+                    self.facing_right = True
+                self.x = float(self.rect.x)
+                hit_wall = True
+                if self.state == "CHARGING":
+                    self.state = "PATROL"
+                    room.spawn_particle_burst(self.center_x, self.center_y, (255, 180, 70), count=6)
+                break
+
+        if hit_wall and self.state == "PATROL":
+            self.vx = self.patrol_speed if self.facing_right else -self.patrol_speed
+
+        self.y += self.vy
+        self.rect.y = int(round(self.y))
+        on_ground = False
+        for tile in room.solid_tiles:
+            if self.rect.colliderect(tile):
+                if self.vy > 0:
+                    self.rect.bottom = tile.top
+                    on_ground = True
+                elif self.vy < 0:
+                    self.rect.top = tile.bottom
+                self.y = float(self.rect.y)
+                self.vy = 0.0
+
+        if turn_at_ledges and on_ground and self.state == "PATROL":
+            feeler_x = self.rect.right + 3 if self.facing_right else self.rect.left - 3
+            feeler_y = self.rect.bottom + 3
+            if not room.is_point_inside_solid(feeler_x, feeler_y):
+                self.facing_right = not self.facing_right
+
+    def draw(self, surface, camera_x, camera_y, assets=None):
+        if not self.alive:
+            return
+        sx = int(self.rect.x - 3 - camera_x)
+        sy = int(self.rect.y - 3 - camera_y)
+        facing_key = "right" if self.facing_right else "left"
+
+        if self.state in ("STUNNED", "YANKED"):
+            frames = self.anims.get("stunned", [])
+            sprite = frames[0] if frames else None
+        elif self.state in ("WINDUP", "CHARGING"):
+            sprite = self.anims.get(f"charge_{facing_key}")
+        else:
+            frames = self.anims.get(facing_key, [])
+            sprite = frames[(self.anim_timer // 6) % len(frames)] if frames else None
+
+        if sprite:
+            surface.blit(sprite, (sx, sy))
+        else:
+            col = (220, 80, 50) if self.state == "CHARGING" else (160, 65, 45)
+            pygame.draw.rect(surface, col, (int(self.x - camera_x), int(self.y - camera_y), self.width, self.height))
+
+
+class ShadowSpider(BaseEnemy):
+    """
+    Shadow Spider ('W') - Ceiling Web Ambusher:
+    Hangs high above on an invisible silk anchor point. When Froggy passes
+    underneath, it drops down rapidly on a glistening silk thread, snapping
+    its venomous fangs, before reeling back up to the ceiling shadows!
+    Froggy can whip it directly with his tongue or stomp it with Stomping Boots.
+    """
+    def __init__(self, spawn_x, spawn_y, enemy_anims):
+        super().__init__(spawn_x, spawn_y, width=18, height=16)
+        self.anims = enemy_anims.get("spider", {})
+        self.anchor_x = float(spawn_x + 9)
+        self.anchor_y = float(spawn_y)
+        self.silk_length = 4.0
+        self.max_drop_length = 95.0
+        self.state = "CEILING"  # "CEILING", "DROP", "HANG", "ASCEND", "STUNNED", "YANKED"
+        self.hang_timer = 0
+        self.can_yank_immediately = True
+
+    def update(self, room):
+        self.anim_timer += 1
+        if self.state == "YANKED":
+            return
+
+        if self.state == "STUNNED":
+            self.stun_timer -= 1
+            self.silk_length += 0.5
+            self.y = self.anchor_y + self.silk_length
+            self.rect.y = int(round(self.y))
+            if self.stun_timer <= 0:
+                self.state = "ASCEND"
+            return
+
+        player = room.active_player_ref
+
+        if self.state == "CEILING":
+            self.silk_length = 4.0
+            if player and abs(player.center_x - self.anchor_x) < 36 and player.y > self.anchor_y:
+                self.state = "DROP"
+
+        elif self.state == "DROP":
+            self.silk_length += 4.5
+            if (self.silk_length >= self.max_drop_length or
+                    room.is_point_inside_solid(self.anchor_x, self.anchor_y + self.silk_length + 8)):
+                self.state = "HANG"
+                self.hang_timer = 45
+
+        elif self.state == "HANG":
+            self.hang_timer -= 1
+            if self.hang_timer <= 0:
+                self.state = "ASCEND"
+
+        elif self.state == "ASCEND":
+            self.silk_length -= 1.8
+            if self.silk_length <= 4.0:
+                self.silk_length = 4.0
+                self.state = "CEILING"
+
+        self.x = self.anchor_x - self.width * 0.5
+        self.y = self.anchor_y + self.silk_length
+        self.rect.topleft = (int(round(self.x)), int(round(self.y)))
+
+    def draw(self, surface, camera_x, camera_y, assets=None):
+        if not self.alive:
+            return
+        ax_s = int(self.anchor_x - camera_x)
+        ay_s = int(self.anchor_y - camera_y)
+        sx = int(self.x - camera_x)
+        sy = int(self.y - camera_y)
+
+        # Draw glowing silk web thread
+        pygame.draw.line(surface, (230, 245, 255), (ax_s, ay_s), (sx + self.width // 2, sy + 3), 1)
+
+        if self.state in ("STUNNED", "YANKED"):
+            frames = self.anims.get("stunned", [])
+            sprite = frames[0] if frames else None
+        elif self.state == "DROP":
+            sprite = self.anims.get("drop")
+        else:
+            frames = self.anims.get("idle", [])
+            sprite = frames[(self.anim_timer // 8) % len(frames)] if frames else None
+
+        if sprite:
+            surface.blit(sprite, (sx - 3, sy - 3))
+        else:
+            pygame.draw.circle(surface, (60, 45, 80), (sx + self.width // 2, sy + self.height // 2), 7)
+
+
 class EmperorMantis(BaseEnemy):
     """
     3-Phase Boss Entity: THE EMPEROR MANTIS!
@@ -1598,12 +2141,15 @@ class EmperorMantis(BaseEnemy):
       2. Strike him with the Spore Boomerang (R) to crack open his golden
          thoracic armor (`WEAK_EXPOSED`).
       3. Whip your Tongue (Y) into his glowing magenta core to yank out an
-         Energy Pearl (-1 Boss HP, +1 Froggy Heart!).
+         Energy Pearl (-1 Boss HP, +1 Froggy Heart!) OR jump on top and
+         stomp his core with the Stomping Boots (-2 Boss HP!).
+      4. Defeating the Mantis permanently drops the RED SPORE BOOMERANG Relic!
     """
     def __init__(self, spawn_x, spawn_y, enemy_anims):
         super().__init__(spawn_x, spawn_y - 80, width=32, height=34)
         self.anims = enemy_anims["mantis"]
         self.is_boss = True
+        self.name = "EMPEROR MANTIS"
         self.max_hp = BOSS_MAX_HP
         self.hp = BOSS_MAX_HP
         self.home_x = float(spawn_x)
@@ -1634,7 +2180,7 @@ class EmperorMantis(BaseEnemy):
             return 2
         return 3
 
-    def hit_by_spore_boomerang(self, room):
+    def hit_by_spore_boomerang(self, room, is_red=False):
         if self.state in ("HOVER", "DIVE_TELEGRAPH", "DIVE_ATTACK"):
             self.state = "WEAK_EXPOSED"
             self.stun_timer = BOSS_WEAK_EXPOSED_FRAMES
@@ -1642,8 +2188,29 @@ class EmperorMantis(BaseEnemy):
             self.vy = 1.2
             self.flash_timer = 12
             room.spawn_particle_burst(self.center_x, self.center_y, COLOR_SPORE_CYAN, count=20)
+            if is_red:
+                self.hp -= 1
+                if self.hp <= 0:
+                    self._die(room)
             return True
         return False
+
+    def check_stomp(self, player_rect, player_vy):
+        """Allows Mario-style stomping when weak core is exposed!"""
+        if self.state == "WEAK_EXPOSED" and player_vy > 0:
+            stomp_rect = pygame.Rect(self.x + 4, self.y - 6, self.width - 8, 16)
+            return player_rect.colliderect(stomp_rect)
+        return False
+
+    def take_stomp_damage(self, room, audio=None):
+        self.hp -= 2
+        self.flash_timer = 25
+        room.spawn_particle_burst(self.center_x, self.center_y, COLOR_BOSS_CORE, count=35)
+        if self.hp <= 0:
+            self._die(room, audio)
+        else:
+            self.state = "RECOVERING"
+            self.state_timer = 40
 
     def yank_exposed_weak_point(self, room):
         self.hp -= 1
@@ -1653,9 +2220,7 @@ class EmperorMantis(BaseEnemy):
         room.spawn_particle_burst(self.center_x, self.center_y, COLOR_BOSS_CORE, count=26)
 
         if self.hp <= 0:
-            self.alive = False
-            room.spawn_particle_burst(self.center_x, self.center_y, COLOR_BOSS_GOLD, count=50)
-            room.spawn_particle_burst(self.center_x, self.center_y, COLOR_BOSS_CORE, count=40)
+            self._die(room)
         else:
             self.state = "RECOVERING"
             self.state_timer = 45
@@ -1664,6 +2229,15 @@ class EmperorMantis(BaseEnemy):
                 room.enemies.append(BuzzFly(self.home_x - 90, self.home_y - 20, room.enemy_anims))
 
         return pearl
+
+    def _die(self, room, audio=None):
+        self.alive = False
+        room.spawn_particle_burst(self.center_x, self.center_y, COLOR_BOSS_GOLD, count=55)
+        room.spawn_particle_burst(self.center_x, self.center_y, COLOR_BOSS_CORE, count=45)
+        # Slaying the Emperor Mantis yields the Red Spore Boomerang Relic!
+        room.powerups.append(CollectiblePowerup(self.center_x - 10, self.center_y, "red_boomerang", room.assets))
+        if audio:
+            audio.play_sfx("boss_hit")
 
     def update(self, room):
         self.anim_timer += 1
@@ -1808,6 +2382,191 @@ class EmperorMantis(BaseEnemy):
                 pygame.draw.circle(surface, COLOR_BOSS_GOLD, (star_x, star_y), 2)
 
 
+class DreadHoundBoss(BaseEnemy):
+    """
+    Chapter 8: 16-Bit Colossus Side-of-Screen Boss: THE DREAD HOUND!
+    A massive 72x72 mechanical/beast hound head anchored to the right wall.
+    
+    Phases & Attack Patterns:
+      1. WALL_IDLE: Prowls along the right wall, bobbing menacingly with crimson eyes.
+      2. LUNGE: Massive horizontal snapping jaw bite charging across the cavern!
+      3. DAZED: Upon hitting the far wall, gets stunned & lodged for ~180 frames!
+         Froggy can jump on top and STOMP its glowing forehead crest (with Stomping Boots)
+         for 2 damage, or whip it with the tongue / shoot it with the Red Boomerang!
+      4. HOWL: Howls sonic shockwaves and cursed fireballs sweeping across the arena!
+    """
+    def __init__(self, spawn_x, spawn_y, enemy_anims):
+        super().__init__(spawn_x, spawn_y, width=64, height=64)
+        self.anims = enemy_anims.get("hound", {})
+        self.is_boss = True
+        self.name = "THE DREAD HOUND"
+        self.home_x = float(spawn_x)
+        self.home_y = float(spawn_y)
+        self.max_hp = BOSS_MAX_HP_HOUND
+        self.hp = BOSS_MAX_HP_HOUND
+        self.awakened = False
+        self.state = "DORMANT"
+        self.state_timer = 0
+        self.anim_timer = 0
+        self.attack_counter = 0
+
+    def awaken(self):
+        if not self.awakened:
+            self.awakened = True
+            self.state = "WALL_IDLE"
+            self.state_timer = 65
+
+    @property
+    def phase(self):
+        if self.hp <= 3:
+            return 3
+        elif self.hp <= 6:
+            return 2
+        return 1
+
+    def check_stomp(self, player_rect, player_vy):
+        """Allows Mario-style stomping when dazed!"""
+        if self.state == "DAZED" and player_vy > 0:
+            stomp_rect = pygame.Rect(self.x + 8, self.y - 12, self.width - 16, 26)
+            return player_rect.colliderect(stomp_rect)
+        return False
+
+    def take_stomp_damage(self, room, audio=None):
+        self.hp -= 2
+        room.spawn_particle_burst(self.center_x, self.y + 8, COLOR_BOSS_GOLD, count=30)
+        self.state = "RETRACT"
+        self.vx = 4.8
+        if self.hp <= 0:
+            self._die(room, audio)
+        elif audio:
+            audio.play_sfx("boss_hit")
+
+    def hit_by_spore_boomerang(self, room, is_red=False):
+        if self.state == "DAZED":
+            dmg = 2 if is_red else 1
+            self.hp -= dmg
+            p_col = COLOR_BOOMERANG_RED if is_red else COLOR_SPORE_CYAN
+            room.spawn_particle_burst(self.center_x, self.center_y, p_col, count=20)
+            if self.hp <= 0:
+                self._die(room)
+            else:
+                self.state = "RETRACT"
+                self.vx = 4.8
+            return True
+        return False
+
+    def _die(self, room, audio=None):
+        self.alive = False
+        room.boss_defeated = True
+        room.boss_defeated_banner_timer = 280
+        room.screen_shake_timer = 60
+        for _ in range(6):
+            rx = self.center_x + random.randint(-24, 24)
+            ry = self.center_y + random.randint(-24, 24)
+            room.spawn_particle_burst(rx, ry, (255, 60, 40), count=25)
+            room.spawn_particle_burst(rx, ry, COLOR_BOSS_GOLD, count=25)
+        if audio:
+            audio.play_sfx("hound_roar")
+            audio.play_music("level")
+
+    def update(self, room):
+        if not self.alive or not self.awakened or self.state == "DORMANT":
+            return
+        self.anim_timer += 1
+        self.state_timer -= 1
+
+        if self.state == "WALL_IDLE":
+            self.y = self.home_y + math.sin(self.anim_timer * 0.06) * 12.0
+            self.x = self.home_x
+            if self.state_timer <= 0:
+                self.attack_counter += 1
+                if self.attack_counter % 2 == 1:
+                    # Snapping Jaw Lunge!
+                    self.state = "LUNGE"
+                    speed = -6.8 if self.phase == 1 else (-8.2 if self.phase == 2 else -9.5)
+                    self.vx = speed
+                    self.state_timer = 85
+                    if hasattr(room, "world_manager") and hasattr(room.world_manager, "audio"):
+                        room.world_manager.audio.play_sfx("hound_bark")
+                else:
+                    # Howl fireball barrage!
+                    self.state = "HOWL"
+                    self.state_timer = 65
+                    self._fire_howl_barrage(room)
+
+        elif self.state == "LUNGE":
+            self.x += self.vx
+            if self.x <= 48 or self.state_timer <= 0:
+                self.x = max(48.0, self.x)
+                self.vx = 0.0
+                self.state = "DAZED"
+                self.state_timer = 180
+                room.screen_shake_timer = 25
+                room.spawn_particle_burst(self.x + 10, self.center_y, (255, 200, 70), count=25)
+                if hasattr(room, "world_manager") and hasattr(room.world_manager, "audio"):
+                    room.world_manager.audio.play_sfx("stun")
+
+        elif self.state == "DAZED":
+            if self.anim_timer % 12 == 0:
+                room.spawn_particle_burst(self.center_x, self.y - 4, (255, 235, 90), count=4)
+            if self.state_timer <= 0:
+                self.state = "RETRACT"
+                self.vx = 4.2
+
+        elif self.state == "RETRACT":
+            self.x += self.vx
+            if self.x >= self.home_x:
+                self.x = self.home_x
+                self.vx = 0.0
+                self.state = "WALL_IDLE"
+                self.state_timer = 60
+
+        elif self.state == "HOWL":
+            if self.anim_timer % 14 == 0:
+                room.spawn_particle_burst(self.x + 8, self.center_y + 12, (255, 60, 40), count=6)
+            if self.state_timer <= 0:
+                self.state = "WALL_IDLE"
+                self.state_timer = 50
+
+        self.rect.topleft = (int(round(self.x)), int(round(self.y)))
+
+    def _fire_howl_barrage(self, room):
+        room.screen_shake_timer = 20
+        if hasattr(room, "world_manager") and hasattr(room.world_manager, "audio"):
+            room.world_manager.audio.play_sfx("hound_roar")
+        count = 2 if self.phase == 1 else (3 if self.phase == 2 else 4)
+        angles = [-0.25, 0.0, 0.25, -0.45][:count]
+        for a in angles:
+            vx = -4.5 * math.cos(a)
+            vy = 4.5 * math.sin(a)
+            room.boss_projectiles.append(HoundFireball(self.x + 10, self.center_y + 8, vx, vy, is_flame=True))
+
+    def draw(self, surface, camera_x, camera_y, assets=None):
+        if not self.alive:
+            return
+        sx = int(self.x - camera_x)
+        sy = int(self.y - camera_y)
+
+        if assets and "crimson" in assets.lights:
+            lt = assets.lights["crimson"]
+            surface.blit(lt, (sx + 36 - lt.get_width() // 2, sy + 36 - lt.get_height() // 2), special_flags=pygame.BLEND_RGB_ADD)
+
+        sprite_key = "idle"
+        if self.state == "LUNGE":
+            sprite_key = "lunge"
+        elif self.state == "DAZED":
+            sprite_key = "dazed"
+        elif self.state == "HOWL":
+            sprite_key = "howl"
+
+        sprite = self.anims.get(sprite_key)
+        if sprite:
+            surface.blit(sprite, (sx, sy))
+        else:
+            col = (180, 40, 40) if self.state == "DAZED" else (120, 30, 30)
+            pygame.draw.rect(surface, col, (sx, sy, self.width, self.height), border_radius=6)
+
+
 # =============================================================================
 # CHAPTER 8. ASCII TILEMAP ROOM PARSER, AUTO-TILER & LUSH DECORATOR
 # =============================================================================
@@ -1849,7 +2608,9 @@ class TileMapRoom:
         self.door_tiles = []         # List of (world_x, world_y, is_boss_door)
         self.doors = {}
         self.enemy_spawns = []
+        self.powerup_spawns = []     # List of (char, world_x, world_y)
         self.enemies = []
+        self.powerups = []           # List of CollectiblePowerup instances
         self.boss_projectiles = []
         self.particles = []
 
@@ -1863,11 +2624,18 @@ class TileMapRoom:
         self.boss_defeated = False       # Defeated bosses stay dead; unseals arena doors!
         self.boss_defeated_banner_timer = 0
         self.boss_awakening_banner_timer = 0
+        self.custom_banner_text = ""
+        self.custom_banner_timer = 0
         self.door_locked_hint_timer = 0  # Timer showing "Gate Sealed" warning prompt
         self.screen_shake_timer = 0
         self.sinister_ambience_active = (self.theme == "sanctum")
 
         self.rebuild_geometry(respawn_enemies=True)
+
+    def show_banner(self, text):
+        """Displays a prominent banner message across the top-center HUD."""
+        self.custom_banner_text = text
+        self.custom_banner_timer = 220
 
     def _is_solid_cell(self, r, c):
         """Returns True if (r, c) is a solid '#' tile (or outside map bounds)."""
@@ -1883,6 +2651,8 @@ class TileMapRoom:
         self.door_tiles.clear()
         self.doors.clear()
         self.enemy_spawns.clear()
+        self.powerup_spawns.clear()
+        self.powerups.clear()
         self.props_list.clear()
         self.hanging_vines.clear()
 
@@ -1963,8 +2733,11 @@ class TileMapRoom:
                 elif char == 'T':
                     self.props_list.append(("mantis_totem", world_x - 4, world_y - 16))
 
-                elif char in ('E', 'F', 'M'):
+                elif char in ('E', 'F', 'N', 'W', 'M', 'H'):
                     self.enemy_spawns.append((char, world_x, world_y))
+
+                elif char in ('J', 'R'):
+                    self.powerup_spawns.append((char, world_x, world_y))
 
                 # 1-to-1 exact character matching for Door Portals ('A', 'B', 'C', 'D', 'V', 'P')
                 if char in self.door_configs:
@@ -2003,18 +2776,40 @@ class TileMapRoom:
 
     def spawn_enemies(self):
         self.enemies.clear()
+        self.powerups.clear()
         self.boss_projectiles.clear()
         self.particles.clear()
         self.sinister_ambience_active = (self.theme == "sanctum")
+
+        # Spawn relic pedestals (if not already collected by Froggy)
+        for char, wx, wy in self.powerup_spawns:
+            if char == 'J':
+                if not (self.active_player_ref and getattr(self.active_player_ref, "has_stomping_boots", False)):
+                    self.powerups.append(CollectiblePowerup(wx, wy, "stomping_boots", self.assets))
+            elif char == 'R':
+                if not (self.active_player_ref and getattr(self.active_player_ref, "has_red_boomerang", False)):
+                    self.powerups.append(CollectiblePowerup(wx, wy, "red_boomerang", self.assets))
+
+        # Spawn troop enemies and colossi
         for char, wx, wy in self.enemy_spawns:
             if char == 'E':
                 self.enemies.append(MossBeetle(wx, wy, self.enemy_anims))
             elif char == 'F':
                 self.enemies.append(BuzzFly(wx, wy, self.enemy_anims))
+            elif char == 'N':
+                self.enemies.append(SoldierAnt(wx, wy, self.enemy_anims))
+            elif char == 'W':
+                self.enemies.append(ShadowSpider(wx, wy, self.enemy_anims))
             elif char == 'M':
                 # Defeated bosses NEVER respawn! Once slain, they remain permanently defeated!
                 if not self.boss_defeated:
                     boss = EmperorMantis(wx, wy, self.enemy_anims)
+                    if self.theme == "sanctum":
+                        boss.awaken()
+                    self.enemies.append(boss)
+            elif char == 'H':
+                if not self.boss_defeated:
+                    boss = DreadHoundBoss(wx, wy, self.enemy_anims)
                     if self.theme == "sanctum":
                         boss.awaken()
                     self.enemies.append(boss)
@@ -2046,7 +2841,10 @@ class TileMapRoom:
                 self.boss_awakening_banner_timer = 190
                 self.screen_shake_timer = 45
                 if audio:
-                    audio.play_sfx("boss_roar")
+                    if getattr(boss, "name", "") == "THE DREAD HOUND":
+                        audio.play_sfx("hound_roar")
+                    else:
+                        audio.play_sfx("boss_roar")
                     audio.play_music("boss")
 
         for enemy in self.enemies:
@@ -2054,9 +2852,13 @@ class TileMapRoom:
                 enemy.update(self)
         self.enemies = [e for e in self.enemies if e.alive]
 
-        # If this room contains a boss encounter ('M') and no alive boss remains,
+        for p in self.powerups:
+            p.update(player, self, audio)
+        self.powerups = [p for p in self.powerups if not p.collected]
+
+        # If this room contains a boss encounter ('M' or 'H') and no alive boss remains,
         # trigger the one-shot Boss Defeat sequence, unsealing all locked doors permanently!
-        room_has_boss = any(char == 'M' for char, _, _ in self.enemy_spawns)
+        room_has_boss = any(char in ('M', 'H') for char, _, _ in self.enemy_spawns)
         if room_has_boss and not self.boss_defeated and self.get_active_boss() is None:
             self.boss_defeated = True
             self.boss_defeated_banner_timer = 260
@@ -2072,10 +2874,25 @@ class TileMapRoom:
             self.boss_defeated_banner_timer -= 1
         if self.boss_awakening_banner_timer > 0:
             self.boss_awakening_banner_timer -= 1
+        if self.custom_banner_timer > 0:
+            self.custom_banner_timer -= 1
         if self.door_locked_hint_timer > 0:
             self.door_locked_hint_timer -= 1
         if self.screen_shake_timer > 0:
             self.screen_shake_timer -= 1
+
+        for wave in self.boss_projectiles:
+            wave.update(self)
+        self.boss_projectiles = [w for w in self.boss_projectiles if w.alive]
+
+        for p in self.particles:
+            p.update()
+        self.particles = [p for p in self.particles if p.age < p.lifetime]
+
+        for vine in self.hanging_vines:
+            vine.update(player, pulse_timer)
+        for ff in self.fireflies:
+            ff.update(pulse_timer)
 
         for wave in self.boss_projectiles:
             wave.update(self)
@@ -2116,6 +2933,27 @@ class TileMapRoom:
                 return node
         return None
 
+    def get_grapple_node_along_line(self, x1, y1, x2, y2, step=7.0):
+        """
+        Raycasts along the tongue shaft from (x1, y1) to (x2, y2).
+        If ANY point intersects a grapple idol, returns that grapple node!
+        Allows forgiving, responsive 8-way whip grappling anywhere along the tongue.
+        """
+        dx = x2 - x1
+        dy = y2 - y1
+        dist = math.hypot(dx, dy)
+        if dist < 1.0:
+            return self.get_grapple_node_at(x2, y2)
+        steps = max(1, int(dist / step))
+        for i in range(steps + 1):
+            t = i / steps
+            px = x1 + dx * t
+            py = y1 + dy * t
+            node = self.get_grapple_node_at(px, py)
+            if node is not None:
+                return node
+        return None
+
     def get_enemy_at_point(self, x, y):
         for enemy in self.enemies:
             if enemy.alive and not enemy.is_boss and enemy.rect.inflate(8, 8).collidepoint(x, y):
@@ -2139,7 +2977,7 @@ class TileMapRoom:
         Boss Arena Lockdown System:
         In true Metroidvania fashion, whenever a boss is in the room and alive,
         exit doors are sealed shut by an ancient crimson force field!
-        Once Froggy slays the Emperor Mantis, self.boss_defeated is permanently
+        Once Froggy slays the boss ('M' or 'H'), self.boss_defeated is permanently
         set to True, shattering the seals with a golden particle explosion!
         """
         if self.boss_defeated:
@@ -2148,7 +2986,7 @@ class TileMapRoom:
         if self.get_active_boss() is not None:
             return True
         for char, _, _ in self.enemy_spawns:
-            if char == 'M':
+            if char in ('M', 'H'):
                 return True
         return False
 
@@ -2268,7 +3106,10 @@ class TileMapRoom:
             else:
                 pygame.draw.rect(surface, COLOR_DOOR_GLOW, screen_door.inflate(glow_radius, glow_radius), 1)
 
-        # 8. ENEMIES, BOSS & PROJECTILES
+        # 8. RELIC POWER-UPS, ENEMIES, BOSS & PROJECTILES
+        for powerup in self.powerups:
+            powerup.draw(surface, camera_x, camera_y)
+
         for enemy in self.enemies:
             if enemy.alive:
                 enemy.draw(surface, camera_x, camera_y, self.assets)
@@ -2535,7 +3376,7 @@ class FroggyPlayer:
         self.x = float(spawn_x)
         self.y = float(spawn_y)
         self.width = 14
-        self.height = 15
+        self.height = 16
         self.rect = pygame.Rect(int(self.x), int(self.y), self.width, self.height)
 
         self.vx = 0.0
@@ -2545,6 +3386,12 @@ class FroggyPlayer:
         self.hp = PLAYER_MAX_HP
         self.invuln_timer = 0
         self.eaten_count = 0
+
+        # Metroidvania Power-ups & Relics
+        self.has_stomping_boots = False
+        self.has_red_boomerang = False
+        self.in_water = False
+        self.prev_in_water = False
 
         self.on_ground = False
         self.touching_wall_dir = 0
@@ -2599,9 +3446,26 @@ class FroggyPlayer:
         if self.invuln_timer > 0:
             self.invuln_timer -= 1
 
-        if controller.just_pressed["R"] and len(self.projectiles) < 2:
+        # Check water hazard immersion (Swimming Physics)
+        self.in_water = any(self.rect.colliderect(w) for w in room.water_hazards)
+        if self.in_water and not self.prev_in_water:
+            if audio:
+                audio.play_sfx("splash")
+            room.spawn_particle_burst(self.center_x, self.rect.bottom, (180, 235, 255), count=14)
+            self.vy *= 0.35
+        elif not self.in_water and self.prev_in_water and self.vy < 0:
+            # Water surface breach jump
+            self.vy = min(self.vy, -5.2)
+            if audio:
+                audio.play_sfx("splash")
+            room.spawn_particle_burst(self.center_x, self.rect.bottom, (180, 235, 255), count=14)
+        self.prev_in_water = self.in_water
+
+        # Special Weapon (R Button): Up to 4 active boomerangs if upgraded with Red Boomerang!
+        max_spores = 4 if self.has_red_boomerang else 2
+        if controller.just_pressed["R"] and len(self.projectiles) < max_spores:
             _, (ux, uy) = controller.get_dpad_vector(self.facing_right)
-            self.projectiles.append(SporeBoomerang(self.center_x, self.center_y, ux, uy))
+            self.projectiles.append(SporeBoomerang(self.center_x, self.center_y, ux, uy, is_red=self.has_red_boomerang))
             if audio:
                 audio.play_sfx("spore")
 
@@ -2675,7 +3539,8 @@ class FroggyPlayer:
                         audio.play_sfx("stun")
                 return
 
-            hit_anchor = room.get_grapple_node_at(tip_x, tip_y)
+            # Raycast grappling check: allows latching if ANY point along the tongue shaft touches an idol!
+            hit_anchor = room.get_grapple_node_along_line(self.center_x, self.center_y, tip_x, tip_y)
             if hit_anchor is not None:
                 # The tongue is only grabby while holding the button (Y on SNES, X/Y on Xbox, X/J on keyboard)!
                 # If the player released the button before contact, it creates sparks and retracts.
@@ -2733,33 +3598,58 @@ class FroggyPlayer:
                 audio.play_sfx("eat")
 
     def _check_damage_collisions(self, room, audio=None):
-        # Check glowing swamp water hazard pits (bounces Froggy up out of the swamp!)
-        for w_rect in room.water_hazards:
-            if self.rect.colliderect(w_rect):
-                self.vy = -8.2
-                self.double_jump_available = True
-                if self.invuln_timer == 0:
-                    self._take_damage(push_from_x=self.center_x, room=room, audio=audio)
-                    self.vy = -8.2
-                return
+        # 1. Mario-Style Stomp with Stomping Boots
+        # When Froggy has Stomping Boots and is falling (vy > 0), landing on an enemy's head
+        # crushes/damages them and grants a high Mario-style bounce rebound!
+        if self.has_stomping_boots and self.vy > 0:
+            for enemy in room.enemies:
+                if enemy.alive and not enemy.is_boss and enemy.state != "YANKED":
+                    # Check if Froggy's feet intersect the top 12 pixels of the enemy
+                    if (self.rect.bottom >= enemy.rect.top - 3 and
+                        self.rect.bottom <= enemy.rect.top + 12 and
+                        self.rect.right > enemy.rect.left + 2 and
+                        self.rect.left < enemy.rect.right - 2):
+                        enemy.stomp_kill(room)
+                        self.vy = -6.4  # High Mario-style rebound jump!
+                        self.double_jump_available = True
+                        room.spawn_particle_burst(self.center_x, enemy.rect.top, (255, 230, 90), count=16)
+                        if audio:
+                            audio.play_sfx("stomp")
+                        return
 
+            # Check Stomping on Colossus Bosses!
+            boss = room.get_active_boss()
+            if boss and boss.alive and boss.awakened:
+                if hasattr(boss, "check_stomp") and boss.check_stomp(self.rect, self.vy):
+                    boss.take_stomp_damage(room, audio)
+                    self.vy = -7.0  # High rebound jump!
+                    self.double_jump_available = True
+                    room.spawn_particle_burst(self.center_x, self.rect.bottom, COLOR_BOSS_GOLD, count=25)
+                    if audio:
+                        audio.play_sfx("stomp")
+                    return
+
+        # 2. Invulnerability Frame Gate
         if self.invuln_timer > 0:
             return
 
+        # 3. Enemy Contact Damage
         for enemy in room.enemies:
-            if not enemy.is_boss and enemy.alive and enemy.state == "PATROL" and self.rect.colliderect(enemy.rect):
+            if not enemy.is_boss and enemy.alive and enemy.state in ("PATROL", "WINDUP", "CHARGING", "DROP", "HANG", "ASCEND") and self.rect.colliderect(enemy.rect):
                 self._take_damage(push_from_x=enemy.center_x, room=room, audio=audio)
                 return
 
+        # 4. Boss Contact Damage
         boss = room.get_active_boss()
         if (
             boss and boss.alive and boss.awakened and
-            boss.state not in ("WEAK_EXPOSED", "DORMANT", "INTRO_DESCENT") and
+            boss.state not in ("WEAK_EXPOSED", "DAZED", "DORMANT", "INTRO_DESCENT") and
             self.rect.colliderect(boss.rect)
         ):
             self._take_damage(push_from_x=boss.center_x, room=room, audio=audio)
             return
 
+        # 5. Boss Projectile Contact Damage
         for wave in room.boss_projectiles:
             if wave.alive and self.rect.colliderect(wave.rect):
                 wave.alive = False
@@ -2858,6 +3748,46 @@ class FroggyPlayer:
             self.tongue_state = "RETRACTING"
 
     def _update_standard_physics(self, controller, room, audio=None):
+        # ---------------------------------------------------------------------
+        # WATER SWIMMING FLUID DYNAMICS (Zero Damage, 4-Way Swimming & Swim Kick)
+        # ---------------------------------------------------------------------
+        if self.in_water:
+            (dx, dy), _ = controller.get_dpad_vector(self.facing_right)
+            # Buoyant gentle sinking (low terminal velocity in water)
+            self.vy = min(self.vy + 0.08, 1.8)
+            # Fluid drag damping
+            self.vx *= 0.88
+            self.vy *= 0.90
+
+            # 4-Way Swimming Authority
+            if dx != 0:
+                self.vx += dx * 0.42
+                self.vx = max(-2.4, min(2.4, self.vx))
+                self.facing_right = (dx > 0)
+            if dy < 0:
+                self.vy -= 0.45
+                self.vy = max(-2.8, self.vy)
+            elif dy > 0:
+                self.vy += 0.35
+                self.vy = min(2.2, self.vy)
+
+            # Frog Stroke Swim Kick on Jump Press!
+            if controller.jump_just_pressed:
+                self.vy = -3.8 if dy >= 0 else -4.6
+                self.vx += (1.2 if self.facing_right else -1.2)
+                self.double_jump_available = True
+                room.spawn_particle_burst(self.center_x, self.rect.bottom, (180, 235, 255), count=8)
+                if audio:
+                    audio.play_sfx("splash")
+
+            self.coyote_timer = COYOTE_TIME_FRAMES
+            self.double_jump_available = True
+            self._move_and_collide(room)
+            return
+
+        # ---------------------------------------------------------------------
+        # STANDARD 2D PLATFORMER MOVEMENT & COLLISION
+        # ---------------------------------------------------------------------
         (dx, _), _ = controller.get_dpad_vector(self.facing_right)
 
         if self.coyote_timer > 0: self.coyote_timer -= 1
@@ -2976,7 +3906,9 @@ class FroggyPlayer:
 
     def _update_animation_state(self):
         self.anim_timer += 1
-        if self.tongue_state != "INACTIVE":
+        if self.in_water:
+            self.anim_state = "swim"
+        elif self.tongue_state != "INACTIVE":
             self.anim_state = "tongue"
         elif not self.on_ground:
             if self.touching_wall_dir != 0 and self.vy > 0:
@@ -3018,11 +3950,15 @@ class FroggyPlayer:
             return
 
         facing_key = "right" if self.facing_right else "left"
-        frames = self.animations[facing_key][self.anim_state]
-        frame_index = (self.anim_timer // 8) % len(frames)
+        state = self.anim_state
+        if state not in self.animations[facing_key]:
+            state = "idle"
+        frames = self.animations[facing_key][state]
+        speed = 10 if state == "swim" else (8 if state == "idle" else 6)
+        frame_index = (self.anim_timer // speed) % len(frames)
         sprite = frames[frame_index]
-        draw_x = int(self.rect.x - 2 - camera_x)
-        draw_y = int(self.rect.y - 1 - camera_y)
+        draw_x = int(self.center_x - sprite.get_width() * 0.5 - camera_x)
+        draw_y = int(self.rect.bottom - sprite.get_height() - camera_y)
         surface.blit(sprite, (draw_x, draw_y))
 
 
@@ -3120,8 +4056,30 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
         surface.blit(help_img, (10, 22))
 
     # Translucent Top HUD Backing Pill
-    pygame.draw.rect(surface, (12, 18, 30), (6, 4, 340, 16), border_radius=4)
-    pygame.draw.rect(surface, (55, 85, 120), (6, 4, 340, 16), 1, border_radius=4)
+    # Calculate dynamic width to cleanly fit health, eaten count, room title, and equipped powerup badges!
+    score_img = font.render(
+        f"EATEN: {player.eaten_count} | {room.title}",
+        True, COLOR_HUD_TEXT
+    )
+    badge_start_x = 86 + score_img.get_width() + 10
+
+    # Calculate badge layout
+    badges = []
+    if getattr(player, "has_stomping_boots", False):
+        badges.append(("[BOOTS]", (255, 220, 80), (45, 35, 12), (255, 200, 60)))
+    if getattr(player, "has_red_boomerang", False):
+        badges.append(("[RED SPORE x4]", (255, 90, 100), (48, 12, 18), (255, 70, 90)))
+    else:
+        badges.append(("[SPORE]", (80, 245, 210), (14, 32, 38), (80, 245, 210)))
+
+    # Compute total width needed
+    total_hud_w = badge_start_x
+    for b_text, _, _, _ in badges:
+        total_hud_w += font.size(b_text)[0] + 10
+    total_hud_w = max(330, total_hud_w + 4)
+
+    pygame.draw.rect(surface, (12, 18, 30), (6, 4, total_hud_w, 16), border_radius=4)
+    pygame.draw.rect(surface, (55, 85, 120), (6, 4, total_hud_w, 16), 1, border_radius=4)
 
     # 5-Heart SNES Health Bar
     for i in range(PLAYER_MAX_HP):
@@ -3131,16 +4089,23 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
         pygame.draw.rect(surface, color, (hx, hy, 10, 8), border_radius=2)
         pygame.draw.rect(surface, (255, 255, 255), (hx, hy, 10, 8), 1, border_radius=2)
 
-    score_img = font.render(
-        f"EATEN: {player.eaten_count} | {room.title}",
-        True, COLOR_HUD_TEXT
-    )
     surface.blit(score_img, (86, 6))
 
+    # Render Equipped Power-Up & Weapon Badges
+    cur_bx = badge_start_x
+    for b_text, text_col, bg_col, border_col in badges:
+        b_surf = font.render(b_text, True, text_col)
+        bw, bh = b_surf.get_width() + 6, 12
+        pygame.draw.rect(surface, bg_col, (cur_bx, 6, bw, bh), border_radius=2)
+        pygame.draw.rect(surface, border_col, (cur_bx, 6, bw, bh), 1, border_radius=2)
+        surface.blit(b_surf, (cur_bx + 3, 6))
+        cur_bx += bw + 4
+
     # Super Metroid Style Automap (Top-Right of 640x360 Canvas)
-    map_origin_x = INTERNAL_WIDTH - 114
+    # Extended to cleanly accommodate all 6 rooms (including Hound's Sanctum & Victory Chamber)
+    map_origin_x = INTERNAL_WIDTH - 146
     map_origin_y = 6
-    cell_w, cell_h = 22, 12
+    cell_w, cell_h = 20, 11
 
     for room_id, r_obj in world_manager.rooms.items():
         gx, gy = r_obj.map_coords
@@ -3160,7 +4125,12 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
             dot_y = cell_rect.y + int(py_ratio * (cell_h - 4)) + 2
             pygame.draw.circle(surface, (255, 235, 80), (dot_x, dot_y), 2)
         elif room_id in world_manager.visited_rooms:
-            fill_col = (120, 35, 65) if room_id == "boss_sanctum" else (45, 68, 112)
+            if room_id in ("boss_sanctum", "hound_sanctum"):
+                fill_col = (130, 32, 60)
+            elif room_id == "victory_chamber":
+                fill_col = (30, 115, 80)
+            else:
+                fill_col = (45, 68, 112)
             pygame.draw.rect(surface, fill_col, cell_rect)
             pygame.draw.rect(surface, (120, 155, 205), cell_rect, 1)
         else:
@@ -3168,17 +4138,17 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
 
     # 8-Way Aim Compass
     _, (ux, uy) = controller.get_dpad_vector(player.facing_right)
-    compass_center = (map_origin_x - 18, 13)
+    compass_center = (map_origin_x - 18, 14)
     pygame.draw.circle(surface, (30, 42, 68), compass_center, 10)
     pygame.draw.circle(surface, (110, 155, 210), compass_center, 10, 1)
     aim_end = (int(compass_center[0] + ux * 8), int(compass_center[1] + uy * 8))
     pygame.draw.line(surface, COLOR_TONGUE_PINK, compass_center, aim_end, 2)
     pygame.draw.circle(surface, COLOR_BOSS_GOLD, aim_end, 2)
 
-    # Dedicated Boss Health Bar (Shown once Emperor Mantis has awakened!)
+    # Dedicated Boss Health Bar (Shown once Emperor Mantis or Dread Hound has awakened!)
     active_boss = room.get_active_boss()
     if active_boss is not None and active_boss.alive and active_boss.awakened:
-        bar_w = 260
+        bar_w = 280
         bar_h = 11
         bar_x = (INTERNAL_WIDTH - bar_w) // 2
         bar_y = INTERNAL_HEIGHT - 22
@@ -3186,38 +4156,59 @@ def draw_hud_and_minimap(surface, font, player, world_manager, camera, mouse_wor
         pygame.draw.rect(surface, (22, 12, 28), (bar_x - 3, bar_y - 3, bar_w + 6, bar_h + 6), border_radius=4)
         pygame.draw.rect(surface, (255, 205, 70), (bar_x - 3, bar_y - 3, bar_w + 6, bar_h + 6), 1, border_radius=4)
 
-        hp_ratio = active_boss.hp / active_boss.max_hp
+        hp_ratio = max(0.0, min(1.0, active_boss.hp / active_boss.max_hp))
         fill_w = int(bar_w * hp_ratio)
         bar_col = (255, 55, 95) if active_boss.phase == 3 else ((255, 145, 50) if active_boss.phase == 2 else (95, 235, 130))
         if fill_w > 0:
             pygame.draw.rect(surface, bar_col, (bar_x, bar_y, fill_w, bar_h), border_radius=3)
 
+        boss_name = getattr(active_boss, "name", "BOSS")
+        if boss_name == "THE DREAD HOUND":
+            hint_txt = "JUMP ON HEAD TO STOMP WHEN DAZED! WHIP WITH [Y]!"
+        else:
+            hint_txt = "STUN WITH [R], YANK CORE WITH [Y]!"
+
         boss_label = font.render(
-            f"EMPEROR MANTIS  [PHASE {active_boss.phase}]  -  STUN WITH [R], YANK CORE WITH [Y]!",
+            f"{boss_name}  [PHASE {active_boss.phase}]  -  {hint_txt}",
             True, (255, 230, 240)
         )
         surface.blit(boss_label, ((INTERNAL_WIDTH - boss_label.get_width()) // 2, bar_y - 14))
 
     # Dramatic Boss Awakening Warning Banner
     if room.boss_awakening_banner_timer > 0 and (pulse_timer // 4) % 2 == 0:
-        warn_surf = font.render("!! WARNING: THE EMPEROR MANTIS AWAKENS !!", True, (255, 85, 120))
+        boss = room.get_active_boss()
+        bname = boss.name if boss else ("THE DREAD HOUND" if room.room_id == "hound_sanctum" else "THE EMPEROR MANTIS")
+        warn_surf = font.render(f"!! WARNING: {bname} AWAKENS !!", True, (255, 85, 120))
         wx = (INTERNAL_WIDTH - warn_surf.get_width()) // 2
         wy = 48
         pygame.draw.rect(surface, (32, 10, 24), (wx - 10, wy - 4, warn_surf.get_width() + 20, 20), border_radius=4)
         pygame.draw.rect(surface, (255, 85, 120), (wx - 10, wy - 4, warn_surf.get_width() + 20, 20), 1, border_radius=4)
         surface.blit(warn_surf, (wx, wy))
 
+    # Boss Defeated Victory Banner
     if room.boss_defeated_banner_timer > 0:
-        banner_surf = font.render("VICTORY! EMPEROR MANTIS DEFEATED! PORTAL OPEN!", True, COLOR_BOSS_GOLD)
+        bname = "THE DREAD HOUND" if room.room_id == "hound_sanctum" else "EMPEROR MANTIS"
+        banner_surf = font.render(f"VICTORY! {bname} DEFEATED! GATE UNLOCKED!", True, COLOR_BOSS_GOLD)
         bx = (INTERNAL_WIDTH - banner_surf.get_width()) // 2
         by = (INTERNAL_HEIGHT // 2) - 20
         pygame.draw.rect(surface, (20, 24, 42), (bx - 10, by - 5, banner_surf.get_width() + 20, 22), border_radius=4)
         pygame.draw.rect(surface, COLOR_BOSS_GOLD, (bx - 10, by - 5, banner_surf.get_width() + 20, 22), 1, border_radius=4)
         surface.blit(banner_surf, (bx, by))
 
+    # Custom Power-Up / Relic Acquisition Banner
+    if getattr(room, "custom_banner_timer", 0) > 0:
+        c_text = room.custom_banner_text
+        c_surf = font.render(c_text, True, (255, 235, 110))
+        cx = (INTERNAL_WIDTH - c_surf.get_width()) // 2
+        cy = 30
+        pygame.draw.rect(surface, (18, 24, 38), (cx - 10, cy - 4, c_surf.get_width() + 20, 20), border_radius=4)
+        pygame.draw.rect(surface, (80, 220, 240), (cx - 10, cy - 4, c_surf.get_width() + 20, 20), 1, border_radius=4)
+        surface.blit(c_surf, (cx, cy))
+
     # Gate Sealed Warning Banner (Shown when player bumps into locked boss doors)
     if getattr(room, "door_locked_hint_timer", 0) > 0 and (pulse_timer // 4) % 2 == 0:
-        lock_surf = font.render("GATE SEALED! DEFEAT THE EMPEROR MANTIS TO PASS!", True, (255, 75, 95))
+        bname = "THE DREAD HOUND" if room.room_id == "hound_sanctum" else "THE EMPEROR MANTIS"
+        lock_surf = font.render(f"GATE SEALED! DEFEAT {bname} TO PASS!", True, (255, 75, 95))
         lx = (INTERNAL_WIDTH - lock_surf.get_width()) // 2
         ly = 72
         pygame.draw.rect(surface, (36, 12, 18), (lx - 10, ly - 4, lock_surf.get_width() + 20, 20), border_radius=4)

@@ -45,32 +45,46 @@ def ensure_directories():
 
 PALETTE = {
     '.': None,                   # Transparent
-    # --- Froggy Hero Greens & Bandana ---
-    'G': (72, 196, 78, 255),     # Mid Emerald Skin
-    'g': (112, 228, 96, 255),    # Bright Top Highlight Green
-    'D': (38, 128, 52, 255),     # Deep Shadow Green
-    'd': (22, 76, 36, 255),      # Dark Outline Green
-    'L': (185, 242, 125, 255),   # Light Yellow-Green Belly
-    'l': (140, 205, 92, 255),    # Shaded Belly
-    'W': (255, 255, 255, 255),   # Pure White (Eye / Specular)
-    'K': (18, 20, 32, 255),      # Deep Ink Black
-    'R': (232, 52, 68, 255),     # Bandana Crimson
-    'r': (158, 26, 44, 255),     # Bandana Shadow
+    # --- Froggy Hero Greens & Bandana (Legend of Mana 7-Tone Painterly Palette) ---
+    'E': (152, 245, 110, 255),   # Golden Sunlit Leaf Highlight
+    'g': (105, 222, 94, 255),    # Light Emerald
+    'G': (64, 188, 76, 255),     # Primary Mid Emerald
+    'D': (32, 118, 48, 255),     # Deep Forest Moss Shadow
+    'd': (18, 64, 30, 255),      # Dark Ink-Green Outline
+    'L': (212, 248, 148, 255),   # Creamy Pale Lime Belly
+    'l': (160, 215, 108, 255),   # Warm Shaded Belly
+    'k': (102, 158, 72, 255),    # Deep Olive Throat Contour
+    'W': (255, 255, 255, 255),   # Pure Specular White / Fangs
+    'w': (238, 242, 230, 255),   # Soft Ivory
+    'K': (16, 18, 26, 255),      # Deep Ink Black (Pupil / Outline)
+    'R': (238, 45, 62, 255),     # Bandana Scarlet Red
+    'r': (165, 22, 38, 255),     # Ruby Crimson Shadow
+    'q': (95, 12, 24, 255),      # Deep Maroon Outline
+    'X': (255, 128, 140, 255),   # Bandana Silk Highlight
     'P': (248, 112, 156, 255),   # Tongue Pink
     'p': (255, 175, 205, 255),   # Tongue Tip Highlight
-    # --- Enemies, Gold & Bioluminescence ---
-    'Y': (255, 212, 68, 255),    # Bright Gold
-    'y': (204, 142, 32, 255),    # Antique Gold Shadow
-    'O': (235, 122, 38, 255),    # Amber Orange
-    'o': (155, 64, 22, 255),     # Dark Rust
-    'C': (72, 232, 255, 255),    # Bioluminescent Cyan
-    'c': (28, 145, 195, 255),    # Deep Cerulean
-    'V': (168, 84, 238, 255),    # Neon Violet
-    'v': (98, 42, 155, 255),     # Dark Purple
-    'M': (255, 68, 198, 255),    # Magenta Boss Core
-    'm': (175, 28, 122, 255),    # Dark Magenta
+    # --- Boots & Leather ---
+    'b': (150, 92, 45, 255),     # Warm Leather Boot Brown
+    'B': (92, 52, 26, 255),      # Dark Leather Boot Shadow
+    'Y': (255, 215, 64, 255),    # Polished Brass / Golden Buckle
+    'y': (205, 145, 28, 255),    # Antique Gold Shadow
+    'Z': (255, 245, 160, 255),   # Star Sparkle / Gold Highlight
+    # --- Enemies, Bosses & FX ---
+    'O': (245, 130, 35, 255),    # Amber Chitin
+    'o': (160, 65, 20, 255),     # Dark Rust Chitin
+    'C': (65, 235, 255, 255),    # Bioluminescent Cyan
+    'c': (24, 140, 195, 255),    # Deep Cerulean
+    'V': (145, 75, 215, 255),    # Velvet Shadow Spider Violet
+    'v': (75, 32, 128, 255),     # Dark Indigo Shadow
+    'N': (80, 255, 235, 255),    # Spider Neon Eye Cyan
+    'M': (255, 60, 195, 255),    # Magenta Boss Core
+    'm': (165, 25, 118, 255),    # Deep Magenta
+    'T': (58, 62, 76, 255),      # Dread Hound Stone Charcoal
+    't': (36, 38, 48, 255),      # Dread Hound Iron Shadow
+    'I': (102, 110, 132, 255),   # Dread Hound Steel Highlight
+    'F': (255, 45, 65, 255),     # Flaming Ruby Eye / Fire Breath
+    'f': (255, 145, 40, 255),    # Flame Orange
     'S': (82, 98, 132, 255),     # Stone Mid
-    'B': (48, 60, 86, 255),      # Stone Dark
     'H': (122, 146, 184, 255),   # Stone Highlight
 }
 
@@ -410,296 +424,752 @@ def generate_environmental_props():
 
 
 # =============================================================================
-# 4. UPGRADED 16-BIT SPRITE SHEETS (FROGGY, ENEMIES & EMPEROR MANTIS BOSS)
+# 4. UPGRADED 16-BIT SPRITE SHEETS (FROGGY, TROOP ENEMIES & DREAD HOUND BOSS)
 # =============================================================================
+# LEGEND OF MANA PAINTERLY SPRITE SUITE:
+# 1. Froggy: 24x24 multi-shaded sprites with golden highlights, deep moss shadows,
+#    creamy lime belly, flowing scarlet hero bandana, and golden leather boots!
+# 2. Swimming Frames: Breaststroke kick and glide poses for aquatic exploration.
+# 3. Troop Enemies:
+#    - Spiked Moss Beetle (24x20)
+#    - Soldier Ant (24x22) with bronze helm & charging jab
+#    - Shadow Spider (24x22) with silk thread & ceiling ambush drop
+#    - Neon Buzzfly (20x20)
+# 4. Power-ups:
+#    - Stomping Boots (24x24) with Hermes wings & star glints
+#    - Red Spore Boomerang (20x20) & in-flight projectile (16x16)
+# 5. Colossal 16-Bit Side-of-Screen Boss:
+#    - The Dread Hound (72x72) with snapping jaws, ruby eyes & dazed stomp phase!
 
 def generate_froggy_sprites():
-    """
-    Generates multi-shaded 18x18 pixel-art sprites for Froggy with:
-    - 5-tone emerald shading, bright yellow-green vocal sac & belly
-    - Expressive eyes with pupils and specular shine
-    - Flowing crimson hero bandana with animated trailing tails
-    """
+    """Generates 24x24 Legend of Mana style painterly sprites for Froggy."""
+    idle_0 = [
+        "........................",
+        "......ww........ww......",
+        ".....wYYw......wYYw.....",
+        "....wYKKWw....wYKKWw....",
+        "....wYKKWw....wYKKWw....",
+        ".....wwww......wwww.....",
+        ".....EEEEggggggEEEE.....",
+        "..qqRRRRRRRRRRRRRRRRqq..",
+        ".qXXRRRRRRRRRRRRRRRRXXq.",
+        ".qq.ddGGGGGGGGGGGGdd.qq.",
+        "..q.ddGGLLLLLLLLGGdd.q..",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGGLLLLLLLLGGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGddDDDDDDDDddGGd...",
+        "...dGGd..........dGGd...",
+        "..dGGd............dGGd..",
+        "..dbbd............dbbd..",
+        ".dbbYYd..........dbbYYd.",
+        ".dBBbBd..........dBBbBd.",
+        "..dBBd............dBBd..",
+        "........................",
+    ]
     idle_1 = [
-        "..................",
-        ".....WW....WW.....",
-        "....WKKW..WKKW....",
-        "....gggggggggg....",
-        "...RRRRRRRRRRRR...",
-        ".rrRRRRRRRRRRRRR..",
-        "rR.GGGGGGGGGGGGg..",
-        "...GGGLLLLLLGGG...",
-        "...GGLLLLLLLLGG...",
-        "...DDGLLLLLLGDD...",
-        "...DDGGGGGGGGDD...",
-        "....DGGGGGGGGD....",
-        "....GGG....GGG....",
-        "...gGG......GGg...",
-        "..DDDD......DDDD..",
-        "..................",
+        "........................",
+        "........................",
+        "......ww........ww......",
+        ".....wYYw......wYYw.....",
+        "....wYKKWw....wYKKWw....",
+        ".....wwww......wwww.....",
+        ".....EEEEggggggEEEE.....",
+        ".qqqRRRRRRRRRRRRRRRRq...",
+        "qXXXRRRRRRRRRRRRRRRRXq..",
+        "qqq.ddGGGGGGGGGGGGdd.q..",
+        ".q..ddGGLLLLLLLLGGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGGLLLLLLLLGGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGddDDDDDDDDddGGd...",
+        "...dGGd..........dGGd...",
+        "..dGGd............dGGd..",
+        "..dbbd............dbbd..",
+        ".dbbYYd..........dbbYYd.",
+        ".dBBbBd..........dBBbBd.",
+        "..dBBd............dBBd..",
+        "........................",
     ]
     idle_2 = [
-        "..................",
-        "..................",
-        ".....WW....WW.....",
-        "....WKKW..WKKW....",
-        "....gggggggggg....",
-        "..rRRRRRRRRRRRR...",
-        ".rrGGGGGGGGGGGGg..",
-        "...GGLLLLLLLLGG...",
-        "...GGLLLLLLLLGG...",
-        "...DDGLLLLLLGDD...",
-        "...DDGGGGGGGGDD...",
-        "....DGGGGGGGGD....",
-        "....GGG....GGG....",
-        "...gGGG....GGGg...",
-        "..DDDDD....DDDDD..",
-        "..................",
+        "........................",
+        "......ww........ww......",
+        ".....wYYw......wYYw.....",
+        "....wYWWYw....wYWWYw....",
+        ".....wKKw......wKKw.....",
+        ".....wwww......wwww.....",
+        ".....EEEEggggggEEEE.....",
+        "..qqRRRRRRRRRRRRRRRRqq..",
+        ".qXXRRRRRRRRRRRRRRRRXXq.",
+        ".qq.ddGGGGGGGGGGGGdd.qq.",
+        "..q.ddGGLLLLLLLLGGdd.q..",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGGLLLLLLLLGGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGddDDDDDDDDddGGd...",
+        "...dGGd..........dGGd...",
+        "..dGGd............dGGd..",
+        "..dbbd............dbbd..",
+        ".dbbYYd..........dbbYYd.",
+        ".dBBbBd..........dBBbBd.",
+        "..dBBd............dBBd..",
+        "........................",
+    ]
+    run_0 = [
+        "........................",
+        "......ww........ww......",
+        ".....wYYw......wYYw.....",
+        "....wYKKWw....wYKKWw....",
+        ".....wwww......wwww.....",
+        ".....EEEEggggggEEEE.....",
+        "qqqRRRRRRRRRRRRRRRRq....",
+        "qXXXRRRRRRRRRRRRRRRRXq..",
+        "qq..ddGGGGGGGGGGGGdd.q..",
+        "....ddGGLLLLLLLLGGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGddDDDDDDDDddGGd...",
+        "..dbbd............dbbd..",
+        ".dbbYYd..........dbbYYd.",
+        ".dBBbBd..........dBBbBd.",
+        "..dBBd............dBBd..",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
     ]
     run_1 = [
-        "..................",
-        ".....WW....WW.....",
-        "....WKKW..WKKW....",
-        "....gggggggggg....",
-        ".rrRRRRRRRRRRRR...",
-        "rr.GGGGGGGGGGGGg..",
-        "...GGGLLLLLLGGG...",
-        "...GGLLLLLLLLGG...",
-        "....DGLLLLLLGDD...",
-        "....DGGGGGGGGD....",
-        ".....GGGGGGGG.....",
-        "...gGG......GGg...",
-        "..gGG........GGg..",
-        ".DDDD.........DDD.",
-        "..................",
-        "..................",
+        "........................",
+        "........ww........ww....",
+        ".......wYYw......wYYw...",
+        "......wYKKWw....wYKKWw..",
+        ".......wwww......wwww...",
+        ".......EEEEggggggEEEE...",
+        ".qqqRRRRRRRRRRRRRRRRq...",
+        "qXXXRRRRRRRRRRRRRRRRXq..",
+        "qq..ddGGGGGGGGGGGGdd.q..",
+        "....ddGGLLLLLLLLGGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGdd........ddGGd...",
+        "..dbbd............dbbd..",
+        ".dbbYYd..........dbbYYd.",
+        "..dBBbBd........dBBbBd..",
+        "...dBBd..........dBBd...",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
     ]
     run_2 = [
-        "..................",
-        ".....WW....WW.....",
-        "....WKKW..WKKW....",
-        "....gggggggggg....",
-        "..rRRRRRRRRRRRR...",
-        "rr.GGGGGGGGGGGGg..",
-        "...GGGLLLLLLGGG...",
-        "...GGLLLLLLLLGG...",
-        "...DDGLLLLLLGDD...",
-        "....DGGGGGGGGD....",
-        "....GGGG..GGGG....",
-        "....GGG....GGG....",
-        ".....DDDD..DDDD...",
-        "..................",
-        "..................",
-        "..................",
+        "........................",
+        "......ww........ww......",
+        ".....wYYw......wYYw.....",
+        "....wYKKWw....wYKKWw....",
+        ".....wwww......wwww.....",
+        ".....EEEEggggggEEEE.....",
+        "..qqRRRRRRRRRRRRRRRRqq..",
+        ".qXXRRRRRRRRRRRRRRRRXXq.",
+        ".qq.ddGGGGGGGGGGGGdd.qq.",
+        "....ddGGLLLLLLLLGGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGddDDDDDDDDddGGd...",
+        "....dbbd........dbbd....",
+        "...dbbYYd......dbbYYd...",
+        "...dBBbBd......dBBbBd...",
+        "....dBBd........dBBd....",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
     ]
-    jump_up = [
-        ".....WW....WW.....",
-        "....WKKW..WKKW....",
-        "....gggggggggg....",
-        "..rRRRRRRRRRRRR...",
-        ".rrGGGGGGGGGGGGg..",
-        "r..GGGLLLLLLGGG...",
-        "...GGLLLLLLLLGG...",
-        "...DDGLLLLLLGDD...",
-        "....DGGGGGGGGD....",
-        "....GGG....GGG....",
-        "...gGG......GGg...",
-        "...GG........GG...",
-        "..DDD........DDD..",
-        "..................",
-        "..................",
-        "..................",
+    run_3 = run_1
+
+    jump_0 = [
+        "......ww........ww......",
+        ".....wYYw......wYYw.....",
+        "....wYKKWw....wYKKWw....",
+        ".....wwww......wwww.....",
+        ".....EEEEggggggEEEE.....",
+        "..qqRRRRRRRRRRRRRRRRqq..",
+        ".qXXRRRRRRRRRRRRRRRRXXq.",
+        ".qq.ddGGGGGGGGGGGGdd.qq.",
+        "....ddGGLLLLLLLLGGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGddDDDDDDDDddGGd...",
+        "...dGGd..........dGGd...",
+        "..dbbd............dbbd..",
+        ".dbbYYd..........dbbYYd.",
+        ".dBBbBd..........dBBbBd.",
+        "..dBBd............dBBd..",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
     ]
-    wall_slide = [
-        "..................",
-        "......WW...WW.....",
-        ".....WKKW.WKKW....",
-        ".....gggggggggg...",
-        "....RRRRRRRRRRRRr.",
-        "....GGGGGGGGGGGGD.",
-        ".....GGLLLLLLGGGD.",
-        ".....GLLLLLLLLGGD.",
-        ".....DGLLLLLLGDDD.",
-        "......GGGGGGGGDD..",
-        ".....GGG....GGGD..",
-        "....GGG......DDD..",
-        "....DDD...........",
-        "..................",
-        "..................",
-        "..................",
+
+    swim_0 = [
+        "........................",
+        "........................",
+        "........ww....ww........",
+        ".......wYYw..wYYw.......",
+        "......wYKKWwwYKKWw......",
+        ".......wwww..wwww.......",
+        ".....ddEEEEggEEEEdd.....",
+        "...qqRRRRRRRRRRRRRRqq...",
+        "..qXXRRRRRRRRRRRRRRXXq..",
+        "..qq.ddGGGGGGGGGGdd.qq..",
+        "....ddGGLLLLLLLLGGdd....",
+        "...ddGGLLLLLLLLLLGGdd...",
+        "..dGGddGGGGGGGGGGddGGd..",
+        ".dGGd..ddDDDDDDdd..dGGd.",
+        "dbbd....ddDDDDdd....dbbd",
+        "dbbYYd...dDDDDd...dbbYYd",
+        ".dBBbBd...dddd...dBBbBd.",
+        "..dBBd............dBBd..",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
     ]
-    mouth_open = [
-        "..................",
-        ".....WW....WW.....",
-        "....WKKW..WKKW....",
-        "....gggggggggg....",
-        "..rRRRRRRRRRRRR...",
-        "rr.GGGGGGGGPPPPPPp",
-        "...GGGGGGGPPPPPPPp",
-        "...GGGLLLLGGGG....",
-        "...GGLLLLLLLLGG...",
-        "...DDGLLLLLLGDD...",
-        "...DDGGGGGGGGDD...",
-        "....DGGGGGGGGD....",
-        "....GGG....GGG....",
-        "...gGG......GGg...",
-        "..DDDD......DDDD..",
-        "..................",
+    swim_1 = [
+        "........................",
+        "........................",
+        "........ww....ww........",
+        ".......wYYw..wYYw.......",
+        "......wYKKWwwYKKWw......",
+        ".......wwww..wwww.......",
+        ".....ddEEEEggEEEEdd.....",
+        "...qqRRRRRRRRRRRRRRqq...",
+        "..qXXRRRRRRRRRRRRRRXXq..",
+        "..qq.ddGGGGGGGGGGdd.qq..",
+        "....ddGGLLLLLLLLGGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGGGGGGGGGGGGdd....",
+        ".....ddDDDDDDDDDDdd.....",
+        "......ddDD....DDdd......",
+        ".......dbbd..dbbd.......",
+        "......dbbYYddbbYYd......",
+        "......dBBbBddBBbBd......",
+        ".......dBBd..dBBd.......",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+    ]
+
+    wall_0 = [
+        "........................",
+        ".........ww........ww...",
+        "........wYYw......wYYw..",
+        ".......wYKKWw....wYKKWw.",
+        "........wwww......wwww..",
+        "........EEEEggggggEEEE..",
+        ".....qqRRRRRRRRRRRRRRRRq",
+        "....qXXRRRRRRRRRRRRRRRRX",
+        "....qq.ddGGGGGGGGGGGGddq",
+        ".......ddGGLLLLLLLLGGdd.",
+        ".......ddGLLLLLLLLLLGdd.",
+        ".......ddGLLLLLLLLLLGdd.",
+        "........ddGGGGGGGGGGdd..",
+        ".......ddDDGGGGGGGGDDdd.",
+        "......dGGddDDDDDDDDdd...",
+        ".....dGGd...............",
+        "....dGGd................",
+        "....dbbd................",
+        "...dbbYYd...............",
+        "...dBBbBd...............",
+        "....dBBd................",
+        "........................",
+        "........................",
+        "........................",
+    ]
+
+    tongue_0 = [
+        "........................",
+        "......ww........ww......",
+        ".....wYYw......wYYw.....",
+        "....wYKKWw....wYKKWw....",
+        ".....wwww......wwww.....",
+        ".....EEEEggggggEEEE.....",
+        "..qqRRRRRRRRRRRRRRRRqq..",
+        ".qXXRRRRRRRRRRRRRRRRXXq.",
+        ".qq.ddGGGGGGPPPPPPPPPPp.",
+        "....ddGGLLLLPPPPPPPPPPp.",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGLLLLLLLLLLGdd....",
+        "....ddGGLLLLLLLLGGdd....",
+        ".....ddGGGGGGGGGGdd.....",
+        "....ddDDGGGGGGGGDDdd....",
+        "...dGGddDDDDDDDDddGGd...",
+        "...dGGd..........dGGd...",
+        "..dGGd............dGGd..",
+        "..dbbd............dbbd..",
+        ".dbbYYd..........dbbYYd.",
+        ".dBBbBd..........dBBbBd.",
+        "..dBBd............dBBd..",
+        "........................",
+        "........................",
     ]
 
     frames = {
-        "froggy_idle_0.png": idle_1,
-        "froggy_idle_1.png": idle_2,
-        "froggy_run_0.png": run_1,
-        "froggy_run_1.png": idle_1,
+        "froggy_idle_0.png": idle_0,
+        "froggy_idle_1.png": idle_1,
+        "froggy_idle_2.png": idle_2,
+        "froggy_run_0.png": run_0,
+        "froggy_run_1.png": run_1,
         "froggy_run_2.png": run_2,
-        "froggy_run_3.png": idle_2,
-        "froggy_jump_0.png": jump_up,
-        "froggy_wall_0.png": wall_slide,
-        "froggy_tongue_0.png": mouth_open,
+        "froggy_run_3.png": run_3,
+        "froggy_jump_0.png": jump_0,
+        "froggy_swim_0.png": swim_0,
+        "froggy_swim_1.png": swim_1,
+        "froggy_wall_0.png": wall_0,
+        "froggy_tongue_0.png": tongue_0,
     }
     for filename, grid in frames.items():
         image_from_grid(grid).save(os.path.join(SPRITES_DIR, filename))
 
 
 def generate_enemy_and_boss_sprites():
-    """
-    Generates upgraded enemy sprites and a rich, intimidating 40x40 pixel-art
-    Emperor Mantis Boss sprite (both Armored and Exposed-Core states).
-    """
+    """Generates upgraded troop enemies, powerups, Emperor Mantis & Dread Hound boss."""
+    beetle_0 = [
+        "........................",
+        ".........YY..YY.........",
+        ".........YY..YY.........",
+        "........yyyy.yyyy.......",
+        ".......ddRRRRRRdd.......",
+        ".....ddRROOOOOORRdd.....",
+        "....ddROOYYYYYYOORdd....",
+        "...ddROOYYYYYYYYOORdd...",
+        "...dROOOOOOOOOOOOOORd...",
+        "...dROOOOOOOOOOOOOORd...",
+        "...dROOOOOOOOOOOOWWRd...",
+        "...ddRRRRRRRRRRRRWKWRd..",
+        "....dKKKKKKKKKKKKKKd....",
+        "....dyyyyyyyyyyyyyyd....",
+        "...dKK.dKK...dKK.dKKd...",
+        "..dKK...dKK...dKK..dKKd.",
+        ".dKK.....dK...dK....dKKd",
+        ".dK.......d...d......dKd",
+        "........................",
+        "........................",
+    ]
     beetle_1 = [
-        "................",
-        "....Y......Y....",
-        "....Y..gg..Y....",
-        "...RRRRRRRRRR...",
-        "..RROOOOOOOORR..",
-        ".RROOYYYYYYOORR.",
-        ".RROOOOOOOOOORR.",
-        "RROOOOOOOOOOWWRR",
-        "RRRRRRRRRRRRWKWR",
-        ".KKKKKKKKKKKKKK.",
-        "..yyyyyyyyyyyy..",
-        "..KK...KK...KK..",
-        ".KK....KK....KK.",
-        ".K.....K......K.",
-        "................",
-        "................",
+        "........................",
+        "........................",
+        ".........YY..YY.........",
+        ".........YY..YY.........",
+        "........yyyy.yyyy.......",
+        ".......ddRRRRRRdd.......",
+        ".....ddRROOOOOORRdd.....",
+        "....ddROOYYYYYYOORdd....",
+        "...ddROOYYYYYYYYOORdd...",
+        "...dROOOOOOOOOOOOOORd...",
+        "...dROOOOOOOOOOOOOORd...",
+        "...dROOOOOOOOOOOOWWRd...",
+        "...ddRRRRRRRRRRRRWKWRd..",
+        "....dKKKKKKKKKKKKKKd....",
+        "....dyyyyyyyyyyyyyyd....",
+        "....dKK..dKK...dKK..d...",
+        "...dKK...dKK...dKK..d...",
+        "...dK.....dK....dK...d..",
+        "........................",
+        "........................",
     ]
-    beetle_2 = [
-        "................",
-        "................",
-        "....Y......Y....",
-        "....Y..gg..Y....",
-        "...RRRRRRRRRR...",
-        "..RROOOOOOOORR..",
-        ".RROOYYYYYYOORR.",
-        ".RROOOOOOOOOORR.",
-        "RROOOOOOOOOOWWRR",
-        "RRRRRRRRRRRRWKWR",
-        ".KKKKKKKKKKKKKK.",
-        "..yyyyyyyyyyyy..",
-        "...KK..KK..KK...",
-        "...KK..KK..KK...",
-        "....K...K...K...",
-        "................",
+
+    ant_0 = [
+        "........................",
+        "......KK..........KK....",
+        ".......KK........KK.....",
+        "........KK......KK......",
+        ".........ddYYYYdd.......",
+        "........dYYZZZZYYd......",
+        ".......dYYYYYYYYYYd.....",
+        "......dKKKKWWWWKKKKd....",
+        ".....dWW..dWWWWd..WWd...",
+        ".....dd...dWWWWd...dd...",
+        "....ddbbooobbbbooobbdd..",
+        "...dbooOOOOOOOOOOOood...",
+        "..dboOOOOOOOOOOOOOOOod..",
+        "..dboOOOOOOOOOOOOOOOod..",
+        "...dbooOOOOOOOOOOOood...",
+        "....ddbbooobbbbooobbdd..",
+        "....dKK.dKK..dKK.dKKd...",
+        "...dKK...dKK..dKK..dKKd.",
+        "..dKK.....dK...dK...dKKd",
+        "..dK.......d...d.....dKd",
+        "........................",
+        "........................",
     ]
+    ant_1 = [
+        "........................",
+        "........................",
+        "......KK..........KK....",
+        ".......KK........KK.....",
+        "........KK......KK......",
+        ".........ddYYYYdd.......",
+        "........dYYZZZZYYd......",
+        ".......dYYYYYYYYYYd.....",
+        "......dKKKKWWWWKKKKd....",
+        ".....dWW..dWWWWd..WWd...",
+        ".....dd...dWWWWd...dd...",
+        "....ddbbooobbbbooobbdd..",
+        "...dbooOOOOOOOOOOOood...",
+        "..dboOOOOOOOOOOOOOOOod..",
+        "..dboOOOOOOOOOOOOOOOod..",
+        "...dbooOOOOOOOOOOOood...",
+        "....ddbbooobbbbooobbdd..",
+        ".....dKK..dKK..dKK..d...",
+        "....dKK...dKK..dKK...d..",
+        "....dK.....dK...dK....d.",
+        "........................",
+        "........................",
+    ]
+    ant_charge = [
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "....KK............KK....",
+        ".....KK..........KK.....",
+        "......ddYYYYYYYYdd......",
+        ".....dYYZZZZZZZZYYd.....",
+        "....dYYYYYYYYYYYYYYd....",
+        "...dKKKKWWWWWWWWKKKKd...",
+        "..dWWWWdWWWWWWWWdWWWWd..",
+        "..dd...dWWWWWWWWd...dd..",
+        "...ddbboooooooooobbdd...",
+        "..dbooOOOOOOOOOOOOood...",
+        ".dboOOOOOOOOOOOOOOOOod..",
+        ".dboOOOOOOOOOOOOOOOOod..",
+        "..ddbboooooooooobbdd....",
+        "...dKK..dKK..dKK..dKKd..",
+        "..dKK...dKK..dKK...dKKd.",
+        ".dKK.....dK...dK....dKKd",
+        ".dK.......d...d......dKd",
+        "........................",
+    ]
+
+    spider_0 = [
+        "...........ww...........",
+        "...........ww...........",
+        "...........ww...........",
+        "....dd.............dd...",
+        "...dVVd...........dVVd..",
+        "..dVVVd...........dVVVd.",
+        "..dvvVd...ddddd...dvVvd.",
+        "...dvvd..dvvvvvd..dvvd..",
+        "....dd.dvvVVVVvvd..dd...",
+        "......dvVVVVVVVVvd......",
+        ".....dvVVNNWWNNVVvd.....",
+        ".....dvVVNNWWNNVVvd.....",
+        "......dvvVVVVVVvvd......",
+        ".......dvvvvvvvvd.......",
+        "........dddddddd........",
+        "...dd...............dd..",
+        "..dVVd.............dVVd.",
+        ".dVVVd.............dVVVd",
+        ".dvvVd.............dvVvd",
+        "..dvvd.............dvvd.",
+        "...dd...............dd..",
+        "........................",
+    ]
+    spider_1 = [
+        "...........ww...........",
+        "...........ww...........",
+        "...........ww...........",
+        "...........ww...........",
+        "....dd.............dd...",
+        "...dVVd...........dVVd..",
+        "..dVVVd...ddddd...dVVVd.",
+        "..dvvVd..dvvvvvd..dvVvd.",
+        "...dvvd.dvvVVVVvvd.dvvd.",
+        "....dd.dvVVVVVVVVvd.dd..",
+        "......dvVVNNWWNNVVvd....",
+        "......dvVVNNWWNNVVvd....",
+        ".......dvvVVVVVVvvd.....",
+        "........dvvvvvvvvd......",
+        ".........dddddddd.......",
+        "...dd...............dd..",
+        "..dVVd.............dVVd.",
+        ".dVVVd.............dVVVd",
+        "..dvvd.............dvvd.",
+        "...dd...............dd..",
+        "........................",
+        "........................",
+    ]
+    spider_drop = [
+        "...........ww...........",
+        "...........ww...........",
+        "...........ww...........",
+        "...........ww...........",
+        "...........ww...........",
+        "..........ddddd.........",
+        ".........dvvvvvd........",
+        "........dvvVVVVvvd......",
+        ".......dvVVVVVVVVvd.....",
+        "......dvVVNNWWNNVVvd....",
+        "......dvVVNNWWNNVVvd....",
+        ".......dvvWWWWWWvvd.....",
+        "........dvWWWWWWvd......",
+        ".........dWWWWWWd.......",
+        ".........dWWWWWWd.......",
+        "........dCCd..dCCd......",
+        ".......dVVd....dVVd.....",
+        "......dVVd......dVVd....",
+        ".....dVVd........dVVd...",
+        "....dvvd..........dvvd..",
+        "....dd..............dd..",
+        "........................",
+    ]
+
     fly_1 = [
-        "................",
-        "..CCCC....CCCC..",
-        ".CWWWWC..CWWWWC.",
-        ".CWWWWCCCCWWWWC.",
-        "..CCCCVVVVCCCC..",
-        ".....VVVVVV.....",
-        "....VVVVVVWR....",
-        "....VVLLLLWR....",
-        "....vvVVVVvv....",
-        ".....vv..vv.....",
-        "....KK....KK....",
-        "................",
-        "................",
-        "................",
-        "................",
-        "................",
+        "....................",
+        "..CCCC........CCCC..",
+        ".CWWWWC......CWWWWC.",
+        ".CWWWWCCCC..CCCCWWWC",
+        "..CCCCVVVV..VVVVCCCC",
+        ".....VVVVVVVVVV.....",
+        "....VVVVVVWWWRRR....",
+        "....VVLLLLWWWRRR....",
+        "....vvVVVVvvvvvv....",
+        ".....vv....vv.......",
+        "....KK......KK......",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
     ]
     fly_2 = [
-        "................",
-        "................",
-        "................",
-        ".....VVVVVV.....",
-        "....VVVVVVWR....",
-        "..CCCCLLLLWRCC..",
-        ".CWWWWVVVVWWWWC.",
-        ".CWWWWC..CWWWWC.",
-        "..CCCC....CCCC..",
-        ".....vv..vv.....",
-        "....KK....KK....",
-        "................",
-        "................",
+        "....................",
+        "....................",
+        "....................",
+        ".....VVVVVVVVVV.....",
+        "....VVVVVVWWWRRR....",
+        "..CCCCLLLLWWWRRRCC..",
+        ".CWWWWVVVVVVVVWWWWC.",
+        ".CWWWWC......CWWWWC.",
+        "..CCCC........CCCC..",
+        ".....vv....vv.......",
+        "....KK......KK......",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+    ]
+
+    powerup_boots = [
+        "........................",
+        "......ZZ........ZZ......",
+        "....ZZYYZZ....ZZYYZZ....",
+        "...ZZYYYYZZ..ZZYYYYZZ...",
+        "....ZZYYZZ....ZZYYZZ....",
+        "......ZZ........ZZ......",
+        "......dd........dd......",
+        ".....dbbd......dbbd.....",
+        "....dbbbbd....dbbbbd....",
+        "...dbbYYbbd..dbbYYbbd...",
+        "...dbYYYYbd..dbYYYYbd...",
+        "...dbYYYYbd..dbYYYYbd...",
+        "...dbbYYbbd..dbbYYbbd...",
+        "....dbbbbd....dbbbbd....",
+        "....dBBBBd....dBBBBd....",
+        "...dBBBBBBd..dBBBBBBd...",
+        "..dBBBBBBBBddBBBBBBBBd..",
+        ".dBBBBBBBBBBBBBBBBBBBBd.",
+        ".dYYYYYYYYddYYYYYYYYYYd.",
+        "..dZZZZZZd..dZZZZZZZZd..",
+        "....dddd......dddddd....",
+        "........................",
+        "........................",
+        "........................",
+    ]
+
+    powerup_red_boomerang = [
+        "....................",
+        "......RRRRRRRR......",
+        "....RRXXXXXXXXRR....",
+        "...RXXrrrrrrrrXXR...",
+        "..RXrr........rrXR..",
+        ".RXr............rXR.",
+        ".RXr............rXR.",
+        "RXXr............rXXR",
+        "RXXr....YYYY....rXXR",
+        "RXXr...YYYYYY...rXXR",
+        "RXXr...YYYYYY...rXXR",
+        "RXXr....YYYY....rXXR",
+        "RXXr............rXXR",
+        ".RXr............rXR.",
+        ".RXr............rXR.",
+        "..RXrr........rrXR..",
+        "...RXXrrrrrrrrXXR...",
+        "....RRXXXXXXXXRR....",
+        "......RRRRRRRR......",
+        "....................",
+    ]
+
+    boomerang_red = [
+        "....RRRRRRRR....",
+        "..RRXXXXXXXXRR..",
+        ".RXXrrrrrrrrXXR.",
+        "RXrr........rrXR",
+        "RXr..........rXR",
+        "RXr....YY....rXR",
+        "RXr...YYYY...rXR",
+        "RXr....YY....rXR",
+        "RXr..........rXR",
+        "RXrr........rrXR",
+        ".RXXrrrrrrrrXXR.",
+        "..RRXXXXXXXXRR..",
+        "....RRRRRRRR....",
         "................",
         "................",
         "................",
     ]
 
-    image_from_grid(beetle_1).save(os.path.join(SPRITES_DIR, "beetle_0.png"))
-    image_from_grid(beetle_2).save(os.path.join(SPRITES_DIR, "beetle_1.png"))
-    image_from_grid(fly_1).save(os.path.join(SPRITES_DIR, "fly_0.png"))
-    image_from_grid(fly_2).save(os.path.join(SPRITES_DIR, "fly_1.png"))
+    enemy_dict = {
+        "beetle_0.png": beetle_0,
+        "beetle_1.png": beetle_1,
+        "fly_0.png": fly_1,
+        "fly_1.png": fly_2,
+        "ant_0.png": ant_0,
+        "ant_1.png": ant_1,
+        "ant_charge.png": ant_charge,
+        "spider_0.png": spider_0,
+        "spider_1.png": spider_1,
+        "spider_drop.png": spider_drop,
+        "powerup_boots.png": powerup_boots,
+        "powerup_red_boomerang.png": powerup_red_boomerang,
+        "boomerang_red.png": boomerang_red,
+    }
+    for name, grid in enemy_dict.items():
+        image_from_grid(grid).save(os.path.join(SPRITES_DIR, name))
 
-    # Detailed 36x36 Emperor Mantis Boss (Procedural High-Bit-Depth Pixel Art)
+    # Detailed 48x48 Emperor Mantis Boss
     for state in ("armored", "exposed"):
-        img = Image.new("RGBA", (36, 36), (0, 0, 0, 0))
+        img = Image.new("RGBA", (48, 48), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        wing_fill = (65, 195, 225, 160) if state == "armored" else (225, 75, 205, 170)
+        wing_edge = (180, 250, 255, 230)
+        d.polygon([(18, 14), (2, 4), (4, 24), (18, 26)], fill=wing_fill, outline=wing_edge)
+        d.polygon([(29, 14), (45, 4), (43, 24), (29, 26)], fill=wing_fill, outline=wing_edge)
+        d.ellipse([15, 26, 32, 44], fill=(28, 92, 46, 255), outline=(14, 42, 22, 255))
+        d.line([(18, 32), (29, 32)], fill=(112, 215, 92, 255))
+        d.line([(17, 36), (30, 36)], fill=(112, 215, 92, 255))
+        d.line([(16, 34), (6, 42), (4, 46)], fill=(38, 128, 52, 255), width=2)
+        d.line([(31, 34), (41, 42), (43, 46)], fill=(38, 128, 52, 255), width=2)
+
+        if state == "armored":
+            d.polygon([(16, 12), (31, 12), (34, 28), (13, 28)], fill=(52, 158, 64, 255), outline=(20, 62, 28, 255))
+            d.polygon([(18, 14), (29, 14), (30, 26), (17, 26)], fill=(235, 175, 42, 255), outline=(255, 235, 120, 255))
+            d.rectangle([(22, 16), (25, 22)], fill=(225, 65, 85, 255))
+            d.polygon([(16, 16), (3, 14), (0, 28), (9, 22)], fill=(255, 212, 68, 255), outline=(225, 95, 35, 255))
+            d.polygon([(31, 16), (44, 14), (47, 28), (38, 22)], fill=(255, 212, 68, 255), outline=(225, 95, 35, 255))
+        else:
+            d.polygon([(14, 12), (33, 12), (35, 28), (12, 28)], fill=(78, 26, 64, 255), outline=(255, 212, 68, 255))
+            d.ellipse([16, 14, 31, 27], fill=(255, 58, 195, 255), outline=(255, 255, 255, 255))
+            d.ellipse([20, 17, 27, 24], fill=(255, 240, 180, 255))
+            d.polygon([(14, 18), (2, 22), (3, 32), (11, 25)], fill=(205, 155, 48, 255), outline=(145, 72, 24, 255))
+            d.polygon([(33, 18), (45, 22), (44, 32), (36, 25)], fill=(205, 155, 48, 255), outline=(145, 72, 24, 255))
+
+        d.polygon([(16, 6), (31, 6), (27, 14), (20, 14)], fill=(42, 142, 58, 255), outline=(18, 52, 26, 255))
+        d.line([(18, 6), (12, 0)], fill=(255, 212, 68, 255), width=2)
+        d.line([(29, 6), (35, 0)], fill=(255, 212, 68, 255), width=2)
+        d.ellipse([14, 5, 20, 11], fill=(235, 38, 62, 255), outline=(255, 195, 95, 255))
+        d.ellipse([27, 5, 33, 11], fill=(235, 38, 62, 255), outline=(255, 195, 95, 255))
+        d.point([(16, 7), (29, 7)], fill=(255, 255, 255, 255))
+        img.save(os.path.join(SPRITES_DIR, f"mantis_{state}.png"))
+
+    # Colossal 72x72 Dread Hound Boss (Side-of-Screen 16-Bit Behemoth)
+    for state in ("idle", "lunge", "dazed", "howl"):
+        img = Image.new("RGBA", (72, 72), (0, 0, 0, 0))
         d = ImageDraw.Draw(img)
 
-        # 1. Sweeping Translucent Insectoid Wings
-        wing_fill = (65, 195, 225, 155) if state == "armored" else (215, 85, 195, 165)
-        wing_edge = (180, 250, 255, 230)
-        d.polygon([(14, 11), (1, 3), (3, 18), (14, 20)], fill=wing_fill, outline=wing_edge)
-        d.polygon([(21, 11), (34, 3), (32, 18), (21, 20)], fill=wing_fill, outline=wing_edge)
+        # Spiked Bronze Collar
+        d.rectangle([54, 10, 71, 62], fill=(195, 135, 28, 255), outline=(255, 215, 64, 255))
+        d.line([(58, 10), (58, 62)], fill=(255, 245, 160, 255), width=2)
+        for sy in (14, 26, 38, 50):
+            d.polygon([(54, sy), (44, sy + 4), (54, sy + 8)], fill=(185, 195, 212, 255), outline=(36, 38, 48, 255))
 
-        # 2. Segmented Insect Abdomen & Spiked Hind Legs
-        d.ellipse([11, 20, 24, 32], fill=(28, 92, 46, 255), outline=(14, 42, 22, 255))
-        d.line([(13, 24), (22, 24)], fill=(112, 215, 92, 255))
-        d.line([(12, 27), (23, 27)], fill=(112, 215, 92, 255))
-        # Spiked Hind Legs
-        d.line([(12, 26), (5, 31), (3, 35)], fill=(38, 128, 52, 255), width=2)
-        d.line([(23, 26), (30, 31), (32, 35)], fill=(38, 128, 52, 255), width=2)
-        d.point([(3, 35), (4, 35), (32, 35), (31, 35)], fill=(255, 212, 68, 255))
+        # Cranium
+        d.ellipse([14, 12, 60, 60], fill=(52, 56, 68, 255), outline=(28, 30, 38, 255))
+        d.polygon([(36, 12), (54, 8), (48, 26)], fill=(36, 38, 48, 255))
 
-        # 3. Thoracic Carapace (Armored Gold Shield vs. Cracked Open Magenta Core)
-        if state == "armored":
-            d.polygon([(12, 10), (23, 10), (25, 22), (10, 22)], fill=(52, 158, 64, 255), outline=(20, 62, 28, 255))
-            # Golden Royal Mantis Breastplate
-            d.polygon([(14, 11), (21, 11), (22, 20), (13, 20)], fill=(235, 175, 42, 255), outline=(255, 235, 120, 255))
-            d.rectangle([16, 13, 19, 17], fill=(225, 65, 85, 255))
-        else:
-            # Shattered breastplate exposing the pulsing Magenta-Gold Energy Core!
-            d.polygon([(10, 10), (25, 10), (26, 22), (9, 22)], fill=(78, 26, 64, 255), outline=(255, 212, 68, 255))
-            d.ellipse([12, 11, 23, 21], fill=(255, 58, 195, 255), outline=(255, 255, 255, 255))
-            d.ellipse([15, 13, 20, 19], fill=(255, 240, 180, 255))
+        if state == "idle":
+            d.polygon([(38, 22), (6, 28), (4, 46), (36, 50)], fill=(58, 62, 76, 255), outline=(28, 30, 38, 255))
+            d.polygon([(10, 28), (4, 30), (8, 34)], fill=(16, 18, 26, 255))
+            d.polygon([(34, 18), (22, 24), (32, 28)], fill=(255, 45, 65, 255), outline=(255, 230, 235, 255))
+            d.point([(26, 23), (27, 23)], fill=(255, 255, 255, 255))
+            d.polygon([(16, 32), (13, 42), (19, 34)], fill=(255, 255, 255, 255), outline=(28, 30, 38, 255))
+            d.polygon([(26, 34), (23, 44), (29, 36)], fill=(255, 255, 255, 255), outline=(28, 30, 38, 255))
+            d.polygon([(20, 48), (23, 38), (26, 48)], fill=(245, 245, 235, 255), outline=(28, 30, 38, 255))
 
-        # 4. Serrated Raptorial Scythe Forearms
-        if state == "armored":
-            # Raised lethal scythes
-            d.polygon([(12, 13), (2, 11), (0, 21), (7, 17)], fill=(255, 212, 68, 255), outline=(225, 95, 35, 255))
-            d.polygon([(23, 13), (33, 11), (35, 21), (28, 17)], fill=(255, 212, 68, 255), outline=(225, 95, 35, 255))
-            # White serrated razor teeth
-            d.point([(1, 18), (3, 19), (5, 18), (34, 18), (32, 19), (30, 18)], fill=(255, 255, 255, 255))
-        else:
-            # Recoiled open scythes (stunned!)
-            d.polygon([(10, 14), (1, 17), (2, 24), (8, 19)], fill=(205, 155, 48, 255), outline=(145, 72, 24, 255))
-            d.polygon([(25, 14), (34, 17), (33, 24), (27, 19)], fill=(205, 155, 48, 255), outline=(145, 72, 24, 255))
+        elif state == "lunge":
+            d.polygon([(38, 16), (2, 16), (0, 34), (32, 38)], fill=(62, 66, 82, 255), outline=(28, 30, 38, 255))
+            d.polygon([(34, 42), (4, 54), (12, 66), (38, 54)], fill=(52, 56, 68, 255), outline=(28, 30, 38, 255))
+            d.polygon([(24, 34), (6, 36), (12, 52), (32, 42)], fill=(125, 22, 38, 255))
+            d.polygon([(34, 14), (20, 18), (32, 24)], fill=(255, 25, 45, 255), outline=(255, 240, 240, 255))
+            d.polygon([(12, 26), (8, 40), (16, 28)], fill=(255, 255, 255, 255), outline=(28, 30, 38, 255))
+            d.polygon([(22, 28), (18, 42), (26, 30)], fill=(255, 255, 255, 255), outline=(28, 30, 38, 255))
+            d.polygon([(16, 56), (19, 44), (22, 56)], fill=(255, 255, 255, 255), outline=(28, 30, 38, 255))
 
-        # 5. Crowned Mantis Head, Antennae & Glowing Crimson Compound Eyes
-        d.polygon([(12, 5), (23, 5), (20, 11), (15, 11)], fill=(42, 142, 58, 255), outline=(18, 52, 26, 255))
-        # Swept-back Royal Antennae
-        d.line([(14, 5), (9, 0)], fill=(255, 212, 68, 255), width=1)
-        d.line([(21, 5), (26, 0)], fill=(255, 212, 68, 255), width=1)
-        # Fierce Compound Eyes
-        d.ellipse([10, 4, 15, 9], fill=(235, 38, 62, 255), outline=(255, 195, 95, 255))
-        d.ellipse([20, 4, 25, 9], fill=(235, 38, 62, 255), outline=(255, 195, 95, 255))
-        d.point([(12, 6), (22, 6)], fill=(255, 255, 255, 255))
+        elif state == "dazed":
+            d.polygon([(38, 26), (6, 32), (6, 52), (36, 54)], fill=(45, 48, 58, 255), outline=(28, 30, 38, 255))
+            d.ellipse([26, 12, 42, 24], fill=(255, 215, 64, 255), outline=(255, 255, 255, 255))
+            d.polygon([(34, 14), (32, 22), (36, 18)], fill=(255, 55, 75, 255))
+            d.ellipse([22, 28, 30, 36], fill=(225, 220, 140, 255), outline=(28, 30, 38, 255))
+            d.line([(24, 30), (28, 34)], fill=(28, 30, 38, 255), width=2)
+            d.line([(28, 30), (24, 34)], fill=(28, 30, 38, 255), width=2)
+            d.polygon([(12, 44), (2, 58), (14, 62), (20, 48)], fill=(248, 112, 156, 255), outline=(175, 28, 72, 255))
 
-        img.save(os.path.join(SPRITES_DIR, f"mantis_{state}.png"))
+        elif state == "howl":
+            d.polygon([(38, 28), (12, 10), (2, 24), (28, 48)], fill=(58, 62, 76, 255), outline=(28, 30, 38, 255))
+            d.polygon([(26, 44), (16, 56), (36, 54)], fill=(48, 52, 64, 255), outline=(28, 30, 38, 255))
+            d.polygon([(24, 28), (12, 18), (18, 38)], fill=(125, 22, 38, 255))
+            d.line([(26, 20), (36, 26)], fill=(255, 215, 64, 255), width=2)
+
+        img.save(os.path.join(SPRITES_DIR, f"hound_{state}.png"))
+
+    p_img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(p_img)
+    pd.ellipse([1, 1, 14, 14], outline=(255, 45, 65, 255), width=2)
+    pd.ellipse([3, 3, 12, 12], outline=(255, 145, 40, 255), width=2)
+    pd.ellipse([5, 5, 10, 10], fill=(255, 235, 120, 255))
+    p_img.save(os.path.join(SPRITES_DIR, "hound_projectile.png"))
+
 
 
 # =============================================================================
