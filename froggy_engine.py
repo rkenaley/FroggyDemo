@@ -765,7 +765,13 @@ class AssetManager:
     via `generate_assets.py` if missing) and provides instant fallbacks.
     """
     def __init__(self):
-        self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+        if getattr(sys, 'frozen', False):
+            _bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(sys.executable)))
+            self.base_dir = os.path.join(_bundle_dir, "assets")
+            if not os.path.exists(self.base_dir):
+                self.base_dir = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "assets")
+        else:
+            self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
         if HAS_ASSET_GENERATOR:
             generate_assets.build_all_assets(force=False)
 

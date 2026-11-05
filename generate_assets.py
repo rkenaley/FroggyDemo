@@ -22,10 +22,17 @@ WHY THIS FILE EXISTS (Educational Note for Your Nephew!):
 import math
 import os
 import random
+import sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-ASSET_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+if getattr(sys, 'frozen', False):
+    _bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(sys.executable)))
+    ASSET_ROOT = os.path.join(_bundle_dir, "assets")
+    if not os.path.exists(ASSET_ROOT):
+        ASSET_ROOT = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "assets")
+else:
+    ASSET_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 TILES_DIR = os.path.join(ASSET_ROOT, "tiles")
 SPRITES_DIR = os.path.join(ASSET_ROOT, "sprites")
 PROPS_DIR = os.path.join(ASSET_ROOT, "props")
