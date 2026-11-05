@@ -36,6 +36,7 @@ CONTROLS (Keyboard / SNES Controller):
 ===============================================================================
 """
 
+import asyncio
 import io
 import math
 import os
@@ -4356,7 +4357,7 @@ def draw_pause_screen(surface, title_font, menu_font, selected_index, anim_timer
         surface.blit(img, (ox, oy))
 
 
-def main():
+async def main():
     pygame.init()
     pygame.display.set_caption(
         "FROGGY - 720p 16-Bit Metroidvania (Lush Canopy, 8-Way Tongue & Sinister Boss)"
@@ -4578,10 +4579,11 @@ def main():
         pygame.transform.scale(snes_canvas, (WINDOW_WIDTH, WINDOW_HEIGHT), window)
         pygame.display.flip()
         clock.tick(TARGET_FPS)
+        await asyncio.sleep(0)
 
     pygame.quit()
     sys.exit()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
