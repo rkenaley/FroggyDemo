@@ -379,6 +379,143 @@ def generate_32bit_gigatoad_sprites():
     return sprites
 
 
+def generate_32bit_dreadhound_sprites():
+    """
+    Generates 32-bit arcade grade sprites for THE DREAD HOUND Colossus (72x72).
+    Features heavy obsidian cybernetic armor plating, curved demon horns, razor
+    steel fangs, glowing crimson slit optics, and vulnerable cracked forehead crest.
+    """
+    sprites = {}
+
+    def make_hound_head(pose="idle"):
+        img = Image.new("RGBA", (72, 72), (0, 0, 0, 0))
+        arr = np.zeros((72, 72, 4), dtype=np.float32)
+
+        cx, cy = 40.0, 38.0
+
+        for y in range(72):
+            for x in range(72):
+                dx = x - cx
+                dy = y - cy
+
+                # --- 1. Curved Demonic Cybernetic Horns ---
+                hx = x - (cx + 12.0)
+                hy = y - (cy - 14.0)
+                horn_angle = math.atan2(hy, hx)
+                horn_r = math.hypot(hx, hy)
+                if 12.0 < horn_r < 22.0 and -2.4 < horn_angle < -0.4:
+                    horn_thick = abs(horn_r - 17.0)
+                    if horn_thick < 3.2:
+                        h_alpha = min(1.0, (3.2 - horn_thick) * 2.0) * 255.0
+                        light = max(0.0, 1.0 - abs(horn_angle + 1.2))
+                        arr[y, x] = [140 + light * 95, 55 + light * 45, 30 + light * 25, h_alpha]
+
+                # --- 2. Main Armored Cranium & Snout ---
+                if pose == "howl":
+                    rx = dx * 0.94 - dy * -0.34
+                    ry = dx * -0.34 + dy * 0.94
+                else:
+                    rx, ry = dx, dy
+
+                skull_dist = math.hypot((rx + 2.0) / 22.0, (ry + 2.0) / 18.0)
+                snout_dist = math.hypot((rx + 16.0) / 16.0, (ry + 4.0) / 10.0)
+
+                is_head = (skull_dist < 1.0) or (snout_dist < 1.0 and rx < 0.0)
+
+                jaw_gap = 12.0 if pose == "lunge" else (16.0 if pose == "howl" else (6.0 if pose == "dazed" else 1.5))
+                lower_jaw_dist = math.hypot((rx + 14.0) / 14.0, (ry - jaw_gap) / 8.5)
+                is_lower_jaw = (lower_jaw_dist < 1.0 and rx < 4.0)
+
+                if is_head or is_lower_jaw:
+                    dist = min(skull_dist, snout_dist) if is_head else lower_jaw_dist
+                    alpha = min(1.0, (1.0 - dist) * 4.0) * 255.0
+                    light = max(0.0, 1.0 - math.hypot((rx + 6.0) / 22.0, (ry + 8.0) / 18.0) * 0.95)
+
+                    if is_lower_jaw:
+                        r = 45.0 + light * 75.0
+                        g = 18.0 + light * 25.0
+                        b = 26.0 + light * 35.0
+                    else:
+                        r = 55.0 + light * 95.0
+                        g = 22.0 + light * 30.0
+                        b = 32.0 + light * 45.0
+
+                    if abs(rx + 6.0) < 0.8 or abs(ry + 2.0) < 0.8:
+                        r, g, b = 25.0, 10.0, 15.0
+
+                    arr[y, x] = [min(255.0, r), min(255.0, g), min(255.0, b), alpha]
+
+                # --- 3. Mouth Interior & Fiery Throat Glow ---
+                if pose in ("lunge", "howl", "dazed") and jaw_gap > 3.0:
+                    mouth_dist = math.hypot((rx + 10.0) / 11.0, (ry - jaw_gap * 0.5) / (jaw_gap * 0.6))
+                    if mouth_dist < 1.0:
+                        m_alpha = min(1.0, (1.0 - mouth_dist) * 3.0) * 255.0
+                        if pose == "howl":
+                            arr[y, x] = [255, 180, 50, m_alpha]
+                        elif pose == "lunge":
+                            arr[y, x] = [220, 45, 45, m_alpha]
+                        else:
+                            arr[y, x] = [50, 12, 20, m_alpha]
+
+                # --- 4. Razor Steel Fangs ---
+                if rx < -2.0 and rx > -24.0:
+                    for fx in (-6.0, -12.0, -18.0):
+                        if abs(rx - fx) < 1.4 and (ry > 3.0 and ry < 9.0):
+                            arr[y, x] = [240, 245, 255, 255]
+                    if is_lower_jaw:
+                        for fx in (-4.0, -10.0, -16.0):
+                            if abs(rx - fx) < 1.2 and abs(ry - (jaw_gap - 4.0)) < 2.0:
+                                arr[y, x] = [230, 235, 250, 255]
+
+                # --- 5. Glowing Crimson Demonic / Cybernetic Eye ---
+                eye_dist = math.hypot((rx + 8.0) / 4.2, (ry + 2.0) / 2.6)
+                if eye_dist < 1.0:
+                    e_alpha = min(1.0, (1.0 - eye_dist) * 3.5) * 255.0
+                    if pose == "dazed":
+                        arr[y, x] = [255, 220, 60, e_alpha]
+                    else:
+                        if abs(ry + 2.0) < 0.9:
+                            arr[y, x] = [255, 240, 240, e_alpha]
+                        else:
+                            arr[y, x] = [255, 30, 60, e_alpha]
+
+                # --- 6. Forehead Armor Crest (Vulnerable Weak Point) ---
+                crest_dist = math.hypot((rx + 2.0) / 5.5, (ry + 11.0) / 4.0)
+                if crest_dist < 1.0:
+                    c_alpha = min(1.0, (1.0 - crest_dist) * 3.5) * 255.0
+                    if pose == "dazed":
+                        if math.hypot((rx + 2.0) / 3.0, (ry + 11.0) / 2.5) < 1.0:
+                            arr[y, x] = [255, 225, 70, c_alpha]
+                        else:
+                            arr[y, x] = [255, 50, 180, c_alpha]
+                    else:
+                        arr[y, x] = [200, 160, 45, c_alpha]
+
+        return Image.fromarray(arr.astype(np.uint8), "RGBA")
+
+    sprites["hound_idle"] = make_hound_head("idle")
+    sprites["hound_lunge"] = make_hound_head("lunge")
+    sprites["hound_dazed"] = make_hound_head("dazed")
+    sprites["hound_howl"] = make_hound_head("howl")
+
+    # Cursed Fireball Projectile (16x16)
+    p_arr = np.zeros((16, 16, 4), dtype=np.float32)
+    for y in range(16):
+        for x in range(16):
+            p_dist = math.hypot(x - 8.0, y - 8.0) / 7.2
+            if p_dist < 1.0:
+                p_alpha = min(1.0, (1.0 - p_dist) * 3.5) * 255.0
+                if p_dist < 0.35:
+                    p_arr[y, x] = [255, 255, 240, p_alpha]
+                elif p_dist < 0.7:
+                    p_arr[y, x] = [255, 175, 45, p_alpha]
+                else:
+                    p_arr[y, x] = [245, 45, 55, p_alpha]
+    sprites["hound_projectile"] = Image.fromarray(p_arr.astype(np.uint8), "RGBA")
+
+    return sprites
+
+
 def build_and_export_all_32bit_sprites():
     """
     Exports both AI-extracted sheets (if present) and procedural 32-bit sprites
@@ -423,6 +560,33 @@ def build_and_export_all_32bit_sprites():
             dazed.save(os.path.join(SPRITES_DIR, "toad_dazed.png"))
             print("[SpriteStudio] Successfully sliced AI Giga Toad sheet into boss sprites!")
 
+    hound_candidates = [
+        os.path.join(brain_dir, "dread_hound_spritesheet_1794180405554.jpg"),
+        r"C:\Users\Ryan\.gemini\antigravity\brain\cf060d41-7879-4e34-9fa5-2f75901d61a0\dread_hound_spritesheet_1794180405554.jpg"
+    ]
+    hound_sheet = next((p for p in hound_candidates if os.path.exists(p)), None)
+
+    if hound_sheet:
+        print(f"[SpriteStudio] Processing AI Dread Hound sheet: {hound_sheet}")
+        h_img = Image.open(hound_sheet)
+        # Crop to active character row bounds
+        row = h_img.crop((0, 150, 1376, 580))
+        sw, sh = row.size
+        col_w = sw // 4
+        hound_ai_sprites = []
+        for i in range(4):
+            cell = row.crop((i * col_w, 0, (i + 1) * col_w, sh))
+            matted = remove_chroma_key(cell, tolerance=42.0)
+            sprite = extract_and_anchor_sprite(matted, target_size=(72, 72), anchor="center")
+            hound_ai_sprites.append(sprite)
+
+        if len(hound_ai_sprites) >= 4:
+            hound_ai_sprites[0].save(os.path.join(SPRITES_DIR, "hound_idle.png"))
+            hound_ai_sprites[1].save(os.path.join(SPRITES_DIR, "hound_lunge.png"))
+            hound_ai_sprites[2].save(os.path.join(SPRITES_DIR, "hound_dazed.png"))
+            hound_ai_sprites[3].save(os.path.join(SPRITES_DIR, "hound_howl.png"))
+            print("[SpriteStudio] Successfully sliced AI Dread Hound sheet into boss sprites!")
+
     # 2. Build procedural 32-bit sprites as high-fidelity base/fallbacks
     frog_32 = generate_32bit_froggy_sprites()
     for name, img in frog_32.items():
@@ -435,6 +599,15 @@ def build_and_export_all_32bit_sprites():
         out_path = os.path.join(SPRITES_DIR, f"{name}.png")
         if not os.path.exists(out_path):
             img.save(out_path)
+
+    hound_32 = generate_32bit_dreadhound_sprites()
+    for name, img in hound_32.items():
+        out_path = os.path.join(SPRITES_DIR, f"{name}.png")
+        if not os.path.exists(out_path):
+            img.save(out_path)
+
+    # Always ensure 32-bit true-color projectile is saved
+    hound_32["hound_projectile"].save(os.path.join(SPRITES_DIR, "hound_projectile.png"))
 
     print("[SpriteStudio] 32-bit sprite assets successfully synchronized!")
 

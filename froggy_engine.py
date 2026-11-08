@@ -1704,9 +1704,16 @@ class HoundFireball:
         if assets and "crimson" in assets.lights:
             lt = assets.lights["crimson"]
             surface.blit(lt, (sx - lt.get_width() // 2, sy - lt.get_height() // 2), special_flags=pygame.BLEND_RGB_ADD)
-        sprite = assets._load_png("sprites", "hound_projectile.png") if assets else None
-        if sprite:
-            surface.blit(sprite, (sx - sprite.get_width() // 2, sy - sprite.get_height() // 2))
+        sp = None
+        if assets and hasattr(assets, "enemy_anims") and "hound" in assets.enemy_anims:
+            sp = assets.enemy_anims["hound"].get("projectile")
+        elif assets:
+            sp = getattr(assets, "hound_projectile_cache", None)
+            if sp is None:
+                sp = assets._load_png("sprites", "hound_projectile.png")
+                assets.hound_projectile_cache = sp
+        if sp:
+            surface.blit(sp, (sx - sp.get_width() // 2, sy - sp.get_height() // 2))
         else:
             pygame.draw.circle(surface, (255, 55, 45), (sx, sy), self.radius)
             pygame.draw.circle(surface, (255, 235, 90), (sx, sy), 3)
@@ -2505,6 +2512,7 @@ class DreadHoundBoss(BaseEnemy):
         self.state = "DORMANT"
         self.state_timer = 0
         self.anim_timer = 0
+        self.flash_timer = 0
         self.attack_counter = 0
 
     def awaken(self):
@@ -2530,6 +2538,7 @@ class DreadHoundBoss(BaseEnemy):
 
     def take_stomp_damage(self, room, audio=None):
         self.hp -= 2
+        self.flash_timer = 25
         room.spawn_particle_burst(self.center_x, self.y + 8, COLOR_BOSS_GOLD, count=30)
         self.state = "RETRACT"
         self.vx = 4.8
@@ -2542,6 +2551,7 @@ class DreadHoundBoss(BaseEnemy):
         if self.state == "DAZED":
             dmg = 2 if is_red else 1
             self.hp -= dmg
+            self.flash_timer = 20
             p_col = COLOR_BOOMERANG_RED if is_red else COLOR_SPORE_CYAN
             room.spawn_particle_burst(self.center_x, self.center_y, p_col, count=20)
             if self.hp <= 0:
@@ -2555,6 +2565,7 @@ class DreadHoundBoss(BaseEnemy):
     def hit_by_tongue_whip(self, room, audio=None):
         if self.state == "DAZED":
             self.hp -= 1
+            self.flash_timer = 20
             room.spawn_particle_burst(self.center_x, self.center_y, COLOR_BOSS_GOLD, count=20)
             if self.hp <= 0:
                 self._die(room, audio)
@@ -2585,6 +2596,8 @@ class DreadHoundBoss(BaseEnemy):
             return
         self.anim_timer += 1
         self.state_timer -= 1
+        if self.flash_timer > 0:
+            self.flash_timer -= 1
 
         if self.state == "WALL_IDLE":
             self.y = self.home_y + math.sin(self.anim_timer * 0.06) * 12.0
@@ -2672,10 +2685,18 @@ class DreadHoundBoss(BaseEnemy):
 
         sprite = self.anims.get(sprite_key)
         if sprite:
-            surface.blit(sprite, (sx, sy))
+            draw_x = sx + (self.width - sprite.get_width()) // 2
+            draw_y = sy + (self.height - sprite.get_height()) // 2
+            surface.blit(sprite, (draw_x, draw_y))
         else:
             col = (180, 40, 40) if self.state == "DAZED" else (120, 30, 30)
             pygame.draw.rect(surface, col, (sx, sy, self.width, self.height), border_radius=6)
+
+        # Flashing hurt silhouette
+        if self.flash_timer > 0 and (self.flash_timer // 2) % 2 == 1:
+            flash_surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            flash_surf.fill((255, 255, 255, 140))
+            surface.blit(flash_surf, (sx, sy))
 
 
 class GigaShockwave:
