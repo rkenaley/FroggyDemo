@@ -88,6 +88,15 @@ PALETTE = {
     'm': (165, 25, 118, 255),    # Deep Magenta
     'T': (58, 62, 76, 255),      # Dread Hound Stone Charcoal
     't': (36, 38, 48, 255),      # Dread Hound Iron Shadow
+    # --- Icy World Palette (Glacial Hot Springs, Stink Bug, Ice Spider & Falo) ---
+    'S': (185, 220, 245, 255),   # Frost Crystal Cyan / Snow Highlight
+    's': (120, 168, 215, 255),   # Glacial Azure Shadow
+    'A': (145, 230, 45, 255),    # Toxic Chartreuse (Stink Bug)
+    'a': (72, 130, 24, 255),     # Toxic Olive Shadow (Stink Bug)
+    'H': (255, 125, 25, 255),    # Carrot Orange (Falo Boomerang Nose)
+    'h': (195, 80, 15, 255),     # Carrot Shadow
+    'Q': (28, 30, 36, 255),      # Snowman Coal Black (Hat / Eyes)
+    'U': (250, 252, 255, 255),   # Snowman Pure Snow White
     'I': (102, 110, 132, 255),   # Dread Hound Steel Highlight
     'F': (255, 45, 65, 255),     # Flaming Ruby Eye / Fire Breath
     'f': (255, 145, 40, 255),    # Flame Orange
@@ -138,6 +147,17 @@ def generate_autotile_set(theme="jungle"):
         top_dark = (32, 112, 48, 255)
         accent_glow = (95, 245, 225, 255)
         prefix = "terrain"
+    elif theme == "ice":
+        # Glacial Hot Springs theme (Crystalline Ice & Snow Caps)
+        stone_dark = (34, 65, 112, 255)
+        stone_mid = (65, 125, 195, 255)
+        stone_hi = (135, 198, 248, 255)
+        mortar = (22, 44, 82, 255)
+        top_bright = (248, 252, 255, 255)  # Snow cap
+        top_mid = (195, 232, 255, 255)    # Frost ice
+        top_dark = (118, 178, 228, 255)   # Glacial blue
+        accent_glow = (220, 248, 255, 255)
+        prefix = "ice"
     else:
         # Sinister Emperor Mantis Sanctum theme (Obsidian, Crimson & Violet Runes)
         stone_dark = (36, 18, 34, 255)
@@ -428,6 +448,20 @@ def generate_environmental_props():
     td.rectangle([8, 6, 10, 8], fill=(255, 55, 95, 255))
     td.rectangle([13, 6, 15, 8], fill=(255, 55, 95, 255))
     totem.save(os.path.join(PROPS_DIR, "mantis_totem.png"))
+
+    # 6. Ancient Checkpoint Shaman Totem (24x32)
+    cp = Image.new("RGBA", (24, 32), (0, 0, 0, 0))
+    cd = ImageDraw.Draw(cp)
+    # Tiered stone pillar base
+    cd.rectangle([2, 24, 21, 31], fill=(42, 54, 76, 255), outline=(18, 24, 36, 255))
+    cd.rectangle([4, 10, 19, 24], fill=(58, 76, 106, 255), outline=(24, 34, 52, 255))
+    # Glowing turquoise restorative runes
+    cd.line([(11, 13), (11, 21)], fill=(95, 245, 225, 255), width=2)
+    cd.line([(8, 16), (14, 16)], fill=(95, 245, 225, 255), width=2)
+    # Golden restorative floating crystal orb on top
+    cd.ellipse([6, 1, 17, 10], fill=(255, 225, 75, 255), outline=(255, 250, 180, 255))
+    cd.ellipse([8, 3, 15, 8], fill=(255, 255, 240, 255))
+    cp.save(os.path.join(PROPS_DIR, "checkpoint_totem.png"))
 
 
 # =============================================================================
@@ -1067,6 +1101,119 @@ def generate_enemy_and_boss_sprites():
         "................",
     ]
 
+    # Icy World Enemies: Stink Bug & Ice Wolf Spider
+    stink_bug_0 = [
+        "........................",
+        ".........aa..aa.........",
+        "........aAA..AAa........",
+        ".........aa..aa.........",
+        "........ddAAAAaadd......",
+        "......ddAaaaaaaAAdd.....",
+        ".....dAaaaaaaaaaaaaAd...",
+        "....dAaaaAAAAAAAAaaaAd..",
+        "...dAaaAAaaaaaaAAaaaAd..",
+        "...dAaaAAaaaaaaAAaaaAd..",
+        "...dAaaaAAAAAAAAaaaAd...",
+        "...ddAaaaaaaaaaaaaAdd...",
+        "....ddAAAAAAAAAAAAdd....",
+        ".....dddddddddddddd.....",
+        "....dKK..dKK...dKK..d...",
+        "...dKK...dKK...dKK..d...",
+        "...dK.....dK....dK...d..",
+        "........................",
+        "........................",
+        "........................",
+    ]
+    stink_bug_1 = [
+        "........................",
+        "........aa....aa........",
+        ".........aAA..AAa.......",
+        "..........aa..aa........",
+        "........ddAAAAaadd......",
+        "......ddAaaaaaaAAdd.....",
+        ".....dAaaaaaaaaaaaaAd...",
+        "....dAaaaAAAAAAAAaaaAd..",
+        "...dAaaAAaaaaaaAAaaaAd..",
+        "...dAaaAAaaaaaaAAaaaAd..",
+        "...dAaaaAAAAAAAAaaaAd...",
+        "...ddAaaaaaaaaaaaaAdd...",
+        "....ddAAAAAAAAAAAAdd....",
+        ".....dddddddddddddd.....",
+        "...dKK.dKK...dKK.dKKd...",
+        "..dKK...dKK...dKK..dKKd.",
+        ".dKK.....dK...dK....dKKd",
+        "........................",
+        "........................",
+        "........................",
+    ]
+
+    ice_spider_camo = [
+        "................",
+        ".......SS.......",
+        "......SSSS......",
+        ".....SSSSSS.....",
+        "....sSSWWSSs....",
+        "...ssSSSSSSss...",
+        "...sSSssssSSs...",
+        "..ssSSssssSSss..",
+        "..sSSSSSSSSSSs..",
+        ".ssSSWWSSSSWWss.",
+        ".sSSSSSSSSSSSSs.",
+        ".ssSSSSSSSSSSss.",
+        "..ssssssssssss..",
+        "...dddddddddd...",
+        "................",
+        "................",
+    ]
+    ice_spider_stalk = [
+        "........................",
+        "......ss........ss......",
+        ".....sSSs......sSSs.....",
+        "....sSSSSs....sSSSSs....",
+        "....sSSWWs....sWWSSs....",
+        ".....sSSs......sSSs.....",
+        "....sSSSSSSSSSSSSSSs....",
+        "...sSSSSSSSSSSSSSSSSs...",
+        "...sSS.NNSSSSSSNN.SSs...",
+        "...sS..NNSSSSSSNN..Ss...",
+        "...sSSSSSSSSSSSSSSSSs...",
+        "....sSSSSSSSSSSSSSSs....",
+        ".....ssSSSSSSSSSSss.....",
+        "....dSSddSSSSSSddSSd....",
+        "...dSSd..dddddd..dSSd...",
+        "..dSSd............dSSd..",
+        "..dssd............dssd..",
+        ".dssSSd..........dssSSd.",
+        ".dSSsSd..........dSSsSd.",
+        "..dSSd............dSSd..",
+        "........................",
+        "........................",
+    ]
+    ice_spider_leap = [
+        "........................",
+        "....ss............ss....",
+        "...sSSs..........sSSs...",
+        "...sSSs..........sSSs...",
+        "....sSSs........sSSs....",
+        ".....sSSSSSSSSSSSSs.....",
+        "....sSSSSSSSSSSSSSSs....",
+        "...sSS.NNSSSSSSNN.SSs...",
+        "...sS..NNSSSSSSNN..Ss...",
+        "...sSSSSSSSSSSSSSSSSs...",
+        "....sSSSSSSSSSSSSSSs....",
+        ".....ssSSSSSSSSSSss.....",
+        "....dSSddddddddddSSd....",
+        "...dSSd..........dSSd...",
+        "..dSSd............dSSd..",
+        "..dssd............dssd..",
+        ".dssSSd..........dssSSd.",
+        ".dSSsSd..........dSSsSd.",
+        "..dSSd............dSSd..",
+        "........................",
+        "........................",
+        "........................",
+    ]
+
     enemy_dict = {
         "beetle_0.png": beetle_0,
         "beetle_1.png": beetle_1,
@@ -1081,6 +1228,11 @@ def generate_enemy_and_boss_sprites():
         "powerup_boots.png": powerup_boots,
         "powerup_red_boomerang.png": powerup_red_boomerang,
         "boomerang_red.png": boomerang_red,
+        "stink_bug_0.png": stink_bug_0,
+        "stink_bug_1.png": stink_bug_1,
+        "ice_spider_camo.png": ice_spider_camo,
+        "ice_spider_stalk.png": ice_spider_stalk,
+        "ice_spider_leap.png": ice_spider_leap,
     }
     for name, grid in enemy_dict.items():
         image_from_grid(grid).save(os.path.join(SPRITES_DIR, name))
@@ -1177,6 +1329,80 @@ def generate_enemy_and_boss_sprites():
     pd.ellipse([5, 5, 10, 10], fill=(255, 235, 120, 255))
     p_img.save(os.path.join(SPRITES_DIR, "hound_projectile.png"))
 
+    # 40x52 Falo the Evil Snowman Boss
+    for state in ("idle", "throw", "melt"):
+        img = Image.new("RGBA", (40, 52), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+
+        snow_shadow = (145, 185, 225, 255)
+        snow_mid = (215, 235, 255, 255)
+        snow_white = (252, 254, 255, 255)
+        coal_black = (24, 26, 32, 255)
+        carrot_orange = (255, 120, 18, 255)
+        hat_band = (220, 42, 68, 255)
+
+        if state == "melt":
+            # Slush puddle with top hat and sunken coal eyes
+            d.ellipse([2, 34, 38, 50], fill=snow_shadow, outline=(110, 150, 195, 255))
+            d.ellipse([6, 36, 34, 48], fill=snow_mid)
+            d.ellipse([10, 38, 30, 45], fill=snow_white)
+            # Fallen top hat
+            d.rectangle([16, 26, 34, 30], fill=coal_black)
+            d.rectangle([20, 16, 30, 26], fill=coal_black)
+            d.rectangle([20, 24, 30, 26], fill=hat_band)
+            # Floating coal eyes & carrot
+            d.ellipse([10, 40, 13, 43], fill=(255, 40, 40, 255))
+            d.ellipse([28, 41, 31, 44], fill=(255, 40, 40, 255))
+            d.polygon([(14, 44), (4, 46), (14, 48)], fill=carrot_orange)
+        else:
+            # Bottom snow boulder
+            d.ellipse([4, 26, 36, 50], fill=snow_shadow, outline=(110, 150, 195, 255))
+            d.ellipse([7, 28, 33, 48], fill=snow_mid)
+            d.ellipse([11, 30, 29, 44], fill=snow_white)
+            d.ellipse([18, 34, 22, 38], fill=coal_black)
+            d.ellipse([18, 41, 22, 45], fill=coal_black)
+
+            # Wooden Branch Arms
+            if state == "throw":
+                d.line([(8, 22), (0, 10), (-2, 6)], fill=(110, 68, 32, 255), width=2)
+                d.line([(32, 22), (40, 16), (42, 10)], fill=(110, 68, 32, 255), width=2)
+                # Conjured Snowball in hand
+                d.ellipse([34, 4, 44, 14], fill=snow_white, outline=snow_shadow)
+            else:
+                d.line([(8, 24), (2, 20), (0, 24)], fill=(110, 68, 32, 255), width=2)
+                d.line([(32, 24), (38, 20), (40, 24)], fill=(110, 68, 32, 255), width=2)
+
+            # Torso sphere
+            d.ellipse([8, 16, 32, 34], fill=snow_shadow, outline=(110, 150, 195, 255))
+            d.ellipse([10, 17, 30, 32], fill=snow_mid)
+            d.ellipse([13, 19, 27, 29], fill=snow_white)
+            d.ellipse([18, 22, 22, 26], fill=coal_black)
+
+            # Head sphere
+            d.ellipse([10, 5, 30, 21], fill=snow_shadow, outline=(110, 150, 195, 255))
+            d.ellipse([12, 6, 28, 19], fill=snow_mid)
+            d.ellipse([14, 7, 26, 17], fill=snow_white)
+
+            # Glowing Red Coal Eyes
+            d.ellipse([14, 9, 17, 12], fill=(255, 35, 45, 255))
+            d.point([15, 10], fill=(255, 255, 255, 255))
+            d.ellipse([21, 9, 24, 12], fill=(255, 35, 45, 255))
+            d.point([22, 10], fill=(255, 255, 255, 255))
+
+            # Sinister Coal Teeth Grin
+            for tx in (14, 17, 20, 23):
+                d.point([tx, 15], fill=coal_black)
+
+            # Detachable Razor Carrot Nose
+            d.polygon([(18, 11), (6, 13), (18, 15)], fill=carrot_orange, outline=(180, 70, 10, 255))
+
+            # Crooked Black Top Hat
+            d.rectangle([7, 4, 33, 7], fill=coal_black, outline=(45, 48, 56, 255))
+            d.rectangle([12, -2, 28, 5], fill=coal_black, outline=(45, 48, 56, 255))
+            d.rectangle([12, 2, 28, 5], fill=hat_band)
+
+        img.save(os.path.join(SPRITES_DIR, f"falo_{state}.png"))
+
 
 
 # =============================================================================
@@ -1245,6 +1471,13 @@ def generate_procedural_parallax_layers():
             "far_col": (42, 12, 30, 225),
             "mid_col": (28, 8, 22, 245),
             "ray_col": (245, 55, 105, 28),
+        },
+        "ice": {
+            "sky_top": (14, 24, 52),
+            "sky_bot": (48, 82, 128),
+            "far_col": (32, 58, 92, 225),
+            "mid_col": (22, 40, 68, 245),
+            "ray_col": (195, 235, 255, 26),
         },
     }
 
@@ -1339,6 +1572,7 @@ def build_all_assets(force=False):
     print("[Asset Pipeline] Generating 16-bit auto-tiles, lush foliage, sprites & lighting maps...")
     generate_autotile_set("jungle")
     generate_autotile_set("sanctum")
+    generate_autotile_set("ice")
     generate_special_tiles()
     generate_environmental_props()
     generate_froggy_sprites()

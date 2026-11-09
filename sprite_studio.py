@@ -257,6 +257,18 @@ def generate_32bit_froggy_sprites():
                         arr[y, x] = [145, 88, 44, 255]
                     if math.hypot((x - (cx + 5)) / 2.5, (y - (cy + 9.5)) / 2.5) < 1.0:
                         arr[y, x] = [130, 75, 36, 255]
+                elif leg_pose == "swing":
+                    # Tucked acrobatic knees & boots for pendulum swinging
+                    for sx, sy_off in ((cx - 4.5, cy + 6.0), (cx + 4.5, cy + 6.8)):
+                        bdx = x - sx
+                        bdy = y - sy_off
+                        b_dist = math.hypot(bdx / 2.6, bdy / 2.4)
+                        if b_dist < 1.0:
+                            arr[y, x] = [140, 85, 42, 255]
+                    # Upward reaching hands gripping the grapple line
+                    for hx in (cx - 3.0, cx + 3.0):
+                        if math.hypot((x - hx) / 1.5, (y - (cy - 6.0)) / 1.7) < 1.0:
+                            arr[y, x] = [50, 150, 60, 255]
 
         # Convert array to image
         return Image.fromarray(arr.astype(np.uint8), "RGBA")
@@ -276,6 +288,8 @@ def generate_32bit_froggy_sprites():
     sprites["froggy_jump_0"] = make_froggy_base(leg_pose="swim_kick", throat_expand=0, bandana_flutter=3.0)
     sprites["froggy_wall_0"] = make_froggy_base(leg_pose="stand", throat_expand=0, bandana_flutter=2.0)
     sprites["froggy_tongue_0"] = make_froggy_base(leg_pose="stand", throat_expand=1, bandana_flutter=1.0)
+    sprites["froggy_swing_0"] = make_froggy_base(leg_pose="swing", throat_expand=0, bandana_flutter=2.0)
+    sprites["froggy_swing_1"] = make_froggy_base(leg_pose="swing", throat_expand=1, bandana_flutter=3.5)
 
     return sprites
 
@@ -581,18 +595,19 @@ def build_and_export_all_32bit_sprites():
             hound_ai_sprites.append(sprite)
 
         if len(hound_ai_sprites) >= 4:
-            hound_ai_sprites[0].save(os.path.join(SPRITES_DIR, "hound_idle.png"))
-            hound_ai_sprites[1].save(os.path.join(SPRITES_DIR, "hound_lunge.png"))
-            hound_ai_sprites[2].save(os.path.join(SPRITES_DIR, "hound_dazed.png"))
-            hound_ai_sprites[3].save(os.path.join(SPRITES_DIR, "hound_howl.png"))
-            print("[SpriteStudio] Successfully sliced AI Dread Hound sheet into boss sprites!")
+            # AI sheet has hound facing right. Flip horizontally so native orientation faces LEFT into the arena!
+            hound_ai_sprites[0].transpose(Image.FLIP_LEFT_RIGHT).save(os.path.join(SPRITES_DIR, "hound_idle.png"))
+            hound_ai_sprites[1].transpose(Image.FLIP_LEFT_RIGHT).save(os.path.join(SPRITES_DIR, "hound_lunge.png"))
+            hound_ai_sprites[2].transpose(Image.FLIP_LEFT_RIGHT).save(os.path.join(SPRITES_DIR, "hound_dazed.png"))
+            hound_ai_sprites[3].transpose(Image.FLIP_LEFT_RIGHT).save(os.path.join(SPRITES_DIR, "hound_howl.png"))
+            print("[SpriteStudio] Successfully sliced & flipped AI Dread Hound sheet (native orientation faces LEFT)!")
 
     # 2. Build procedural 32-bit sprites as high-fidelity base/fallbacks
+    # Force overwrite for Froggy to eliminate old 24x24 pixel art mismatches and flickering!
     frog_32 = generate_32bit_froggy_sprites()
     for name, img in frog_32.items():
         out_path = os.path.join(SPRITES_DIR, f"{name}.png")
-        if not os.path.exists(out_path):
-            img.save(out_path)
+        img.save(out_path)
 
     toad_32 = generate_32bit_gigatoad_sprites()
     for name, img in toad_32.items():
