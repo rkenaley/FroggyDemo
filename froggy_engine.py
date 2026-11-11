@@ -2960,6 +2960,12 @@ class GigaToadBoss(BaseEnemy):
         self.vx = 0.0
         self.vy = 0.0
         self.attack_counter = 0
+        self.shield_flash_timer = 0
+
+    @property
+    def shield_active(self):
+        """Giga Toad raises his Championship Brawler Shield whenever he is not exhausted/dazed!"""
+        return self.awakened and self.state not in ("PANTING", "DAZED", "HURT", "DORMANT")
 
     def awaken(self):
         if not self.awakened:
@@ -2969,21 +2975,22 @@ class GigaToadBoss(BaseEnemy):
 
     @property
     def phase(self):
-        if self.hp <= 3:
+        if self.hp <= self.max_hp * 0.30:
             return 3
-        elif self.hp <= 6:
+        elif self.hp <= self.max_hp * 0.65:
             return 2
         return 1
 
     def check_stomp(self, player_rect, player_vy):
-        """Allows Mario-style stomping when panting, dazed, or stalking on the ground!"""
+        """Allows Mario-style stomping from above when panting, dazed, or breaking his guard from overhead!"""
         if self.state in ("PANTING", "DAZED", "BRAWLER_IDLE", "HURT") and player_vy > 0:
             stomp_rect = pygame.Rect(int(self.x - 4), int(self.y - 16), self.width + 8, 34)
             return player_rect.colliderect(stomp_rect)
         return False
 
     def take_stomp_damage(self, room, audio=None):
-        self.hp -= 2
+        dmg = 8 if self.state in ("PANTING", "DAZED") else 5
+        self.hp -= dmg
         self.flash_timer = 25
         room.spawn_particle_burst(self.center_x, self.y + 4, COLOR_BOSS_GOLD, count=30)
         if self.hp <= 0:
@@ -2996,53 +3003,78 @@ class GigaToadBoss(BaseEnemy):
                 audio.play_sfx("boss_hit")
 
     def hit_by_spore_boomerang(self, room, is_red=False):
+        audio = getattr(room.world_manager, "audio", None) if hasattr(room, "world_manager") else None
         if self.state in ("PANTING", "DAZED"):
-            dmg = 2 if is_red else 1
+            dmg = 6 if is_red else 4
             self.hp -= dmg
             self.flash_timer = 20
             p_col = COLOR_BOOMERANG_RED if is_red else COLOR_SPORE_CYAN
             room.spawn_particle_burst(self.center_x, self.center_y, p_col, count=25)
             if self.hp <= 0:
-                self._die(room)
+                self._die(room, audio)
             else:
                 self.state = "HURT"
-                self.state_timer = 25
+                self.state_timer = 22
                 self.vx = 2.0 if not self.facing_right else -2.0
             return True
-        elif self.state in ("BRAWLER_IDLE", "JUMP_SLAM_WINDUP", "CHARGE_PUNCH_WINDUP") and self.flash_timer == 0:
-            self.hp -= 1
-            self.flash_timer = 14
-            p_col = COLOR_BOOMERANG_RED if is_red else COLOR_SPORE_CYAN
-            room.spawn_particle_burst(self.center_x, self.center_y, p_col, count=16)
-            if self.hp <= 0:
-                self._die(room)
+        elif self.shield_active:
+            # Deflected by Giga Toad's Championship Brawler Shield!
+            self.shield_flash_timer = 14
+            room.spawn_particle_burst(
+                self.center_x + (24 if self.facing_right else -24),
+                self.center_y,
+                (255, 235, 95),
+                count=14,
+            )
+            if audio:
+                audio.play_sfx("shield_clang")
             return True
         return False
 
     def hit_by_tongue_whip(self, room, audio=None):
         if self.state in ("PANTING", "DAZED"):
-            self.hp -= 1
+            self.hp -= 5
             self.flash_timer = 20
             room.spawn_particle_burst(self.center_x, self.center_y, (255, 230, 90), count=25)
             if self.hp <= 0:
                 self._die(room, audio)
             else:
                 self.state = "HURT"
-                self.state_timer = 25
+                self.state_timer = 22
                 self.vx = 2.5 if not self.facing_right else -2.5
             if audio:
                 audio.play_sfx("boss_hit")
             return True
-        elif self.state in ("BRAWLER_IDLE", "JUMP_SLAM_WINDUP", "CHARGE_PUNCH_WINDUP") and self.flash_timer == 0:
-            self.hp -= 1
-            self.flash_timer = 14
-            room.spawn_particle_burst(self.center_x, self.center_y, (255, 230, 90), count=16)
-            if self.hp <= 0:
-                self._die(room, audio)
+        elif self.shield_active:
+            # Deflected by Giga Toad's Brawler Shield!
+            self.shield_flash_timer = 14
+            room.spawn_particle_burst(
+                self.center_x + (24 if self.facing_right else -24),
+                self.center_y,
+                (255, 235, 95),
+                count=12,
+            )
+            if audio:
+                audio.play_sfx("shield_clang")
+            return False
+        return False
+
+    def hit_by_muhlaser(self, room, charge_ratio, audio=None):
+        """Charged Muhlaser shatters Giga Toad's Brawler Shield and deals heavy damage!"""
+        dmg = max(4, int(round(4 + 12 * charge_ratio)))
+        self.hp -= dmg
+        self.flash_timer = 24
+        room.spawn_particle_burst(self.center_x, self.center_y, (95, 250, 255), count=28)
+        if self.hp <= 0:
+            self._die(room, audio)
+        else:
+            if charge_ratio >= 0.45 and self.shield_active:
+                self.state = "DAZED"
+                self.state_timer = 95
+                self.vx = 0.0
             if audio:
                 audio.play_sfx("boss_hit")
-            return True
-        return False
+        return True
 
     def _die(self, room, audio=None):
         self.alive = False
