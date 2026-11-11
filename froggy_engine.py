@@ -2739,6 +2739,8 @@ class DreadHoundBoss(BaseEnemy):
         self.state_timer -= 1
         if self.flash_timer > 0:
             self.flash_timer -= 1
+        if self.shield_flash_timer > 0:
+            self.shield_flash_timer -= 1
 
         player = getattr(room, "active_player_ref", None)
 
@@ -3147,6 +3149,8 @@ class GigaToadBoss(BaseEnemy):
         self.state_timer -= 1
         if self.flash_timer > 0:
             self.flash_timer -= 1
+        if self.shield_flash_timer > 0:
+            self.shield_flash_timer -= 1
 
         player = room.active_player_ref
         audio = getattr(room.world_manager, "audio", None) if hasattr(room, "world_manager") else None
@@ -3325,6 +3329,19 @@ class GigaToadBoss(BaseEnemy):
         else:
             col = (220, 60, 60) if self.state in ("PANTING", "DAZED") else (60, 160, 80)
             pygame.draw.rect(surface, col, (sx, sy, self.width, self.height), border_radius=6)
+
+        # Render Giga Toad's Championship Brawler Guard Shield arc when raised!
+        if self.shield_active:
+            shield_col = (255, 255, 255) if self.shield_flash_timer > 0 else (
+                (255, 95, 115) if self.phase == 3 else (255, 215, 75)
+            )
+            inner_col = (95, 245, 165) if self.phase < 3 else (255, 185, 75)
+            sh_x = sx + (self.width - 8 if self.facing_right else -10)
+            sh_rect = pygame.Rect(sh_x, sy + 6, 18, self.height - 12)
+            start_ang = -1.15 if self.facing_right else (math.pi - 1.15)
+            stop_ang = 1.15 if self.facing_right else (math.pi + 1.15)
+            pygame.draw.arc(surface, shield_col, sh_rect, start_ang, stop_ang, 3)
+            pygame.draw.arc(surface, inner_col, sh_rect.inflate(-4, -4), start_ang, stop_ang, 2)
 
 
 # =============================================================================
