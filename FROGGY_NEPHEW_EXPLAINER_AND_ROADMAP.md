@@ -200,16 +200,86 @@ Want to design your own rooms? Froggy includes an in-game builder mode!
 
 ---
 
-## 🚀 9. Recommended Next Steps for the Next Dev Chat
+## 🌋 9. Version 6 Upgrades: 16-Bit WAV Sample Bank, Volcanic & Submarine Biomes, NPCs & Boss Rush!
 
-Here are the highest-leverage features to tackle in your next session with a powerful model:
+1. **16-Bit PCM/WAV Sound Effect Sample Bank (`assets/sfx/*.wav`)**:
+   - [`RetroAudioEngine`](file:///c:/AGProj/FroggyDemo/froggy_engine.py#L164-L665) now synthesizes and caches 27 stereo 16-bit 44.1 kHz `.wav` samples on disk with an authentic SNES S-SMP / SPC700 6-tap stereo echo & low-pass FIR reverb network (`_apply_snes_reverb`).
+   - Includes SNES-style reverb slaps (`reverb_slap`, `tongue`), crunchy bitcrushed stomp thuds (`stomp`), 6-partial inharmonic crystal ice shattering (`ice_shatter`), waterfall cooling mist sizzles (`sizzle_mist`), submarine bubble pops (`bubble_pop`), NPC dialogue blips (`npc_talk`), and shopkeeper chimes (`shop_buy`).
+2. **Volcanic Magma Chasm (`volcanic_chasm`) & Sunken Submarine Grotto (`sunken_grotto`)**:
+   - **Volcanic Magma Chasm**: Scorching volcanic air and molten magma pools (`lava_0..3.png`) drive `player.body_temp` above $100\%$ toward $200\%$. Standing inside cascading **Cold Waterfall Mist** columns (`'c'`, `waterfall_0..3.png`) rapidly cools Froggy back down toward $100\%$. Accompanied by `volcanic_magma.mid`.
+   - **Sunken Submarine Grotto**: Deep underwater coral maze (`sunken_grotto.mid`) where `player.oxygen` drains while submerged and refills to $100\%$ at glowing **Submarine Air Bubble Vents** (`'o'`, `bubble_vent_0..1.png`) and rising [`AirBubble`](file:///c:/AGProj/FroggyDemo/froggy_engine.py#L4457-L4494) streams.
+3. **Friendly NPC Frogs & Comic-Style Dialogue Bubbles**:
+   - [`FriendlyNPC`](file:///c:/AGProj/FroggyDemo/froggy_engine.py#L4497-L4729) adds **Elder Tree Frogs** (`npc_elder_0..1.png`) and **Village Shopkeepers** (`npc_shopkeeper_0..1.png`) with comic-style rounded speech bubbles, triangular pointer tails, typewriter text reveal, and `[UP]` interactions to trade eaten bugs for healing tonics or receive ancient blessings.
+4. **Arcade Boss Rush & Competitive Speedrun Split Timer**:
+   - [`BossRushManager`](file:///c:/AGProj/FroggyDemo/froggy_engine.py#L4771-L4937) and [`SpeedrunTimer`](file:///c:/AGProj/FroggyDemo/froggy_engine.py#L4732-L4769) add **ARCADE BOSS RUSH (TIME ATTACK)** to the Title Screen, challenging players to defeat all 4 bosses back-to-back (`EmperorMantis` -> `DreadHoundBoss` -> `GigaToadBoss` -> `FaloSnowmanBoss`) with live `MM:SS.xx` split times and personal best records saved to `boss_rush_records.json`.
 
-1. **Audio Synthesis of Sound Effects into MIDI/WAV**:
-   - Currently, music is pure General MIDI, while sound effects are procedurally generated waveforms. Adding high-quality 16-bit sound effect samples (e.g. SNES-style reverb snaps) will make hits feel punchier.
-2. **Additional Biomes**:
-   - *Volcanic Magma Tubes* (where Froggy's amphibian skin overheats and needs cooling waterfalls).
-   - *Sunken Submarine Grotto* (deep underwater exploration with swimming puzzles).
-3. **Dialogue & Story NPCs**:
-   - Add friendly swamp elder frogs with text speech bubbles to guide the player through the lore of the ancient frog kingdom.
-4. **Boss Rush & Speedrun Timer**:
-   - An arcade time-attack mode challenging players to defeat all four bosses back-to-back with an in-game split timer.
+---
+
+## 🛠️ 10. Standalone Developer Tools & Modular World Architecture
+
+To give you and your nephew full creative superpowers, all level definitions, tile registries, and developer tooling have been modularized into dedicated PowerShell tools and files:
+
+1. **Modular World Registry ([`world_data.py`](file:///c:/AGProj/FroggyDemo/world_data.py)) & JSON Levels (`levels/*.json`)**:
+   - Decoupled all 14 zone blueprints from the monolithic engine.
+   - Any zone can now be inspected, tweaked, or created without loading the 7,000-line engine!
+   - Custom edits are saved directly to `levels/<zone_id>.json` and loaded automatically by both the editor and the main game.
+2. **Standalone Level Studio ([`level_studio.py`](file:///c:/AGProj/FroggyDemo/level_studio.py))**:
+   - Run from PowerShell:
+     - `py level_studio.py --list` : Lists all existing zones with exact names, titles, and sizes.
+     - `py level_studio.py --info <zone_id>` : Detailed inspection of a zone's doors, spawns, and NPCs.
+     - `py level_studio.py --zone <zone_id>` : Visual 720p editor with smooth panning, zooming, autotiling, and full Undo/Redo.
+     - `py level_studio.py --new <zone_id> --theme ice` : Creates a new zone from scratch.
+     - `py level_studio.py --play <zone_id>` : Instant playtest mode in that exact room!
+3. **Standalone Sprite & Animation Inspector ([`sprite_inspector.py`](file:///c:/AGProj/FroggyDemo/sprite_inspector.py))**:
+   - Run from PowerShell:
+     - `py sprite_inspector.py --list` : Manifest of all 29 animation sequences and 75 frames.
+     - `py sprite_inspector.py --sprite froggy_run` : Inspects specific animation poses.
+     - `py sprite_inspector.py` : Full visual studio with frame scrubbing, slow-motion playback, pixel grid, neon green bounding box overlays, and magenta bottom-center anchor crosshairs.
+4. **Complete Tools & Modularity Guide ([`TOOLS_AND_MODULAR_GUIDE.md`](file:///c:/AGProj/FroggyDemo/TOOLS_AND_MODULAR_GUIDE.md))**:
+   - Comprehensive plaintext guide explaining every tool, file layout, coordinate math, and prompt instructions.
+
+---
+
+## 💎 11. Version 7 Polish & Metroidvania Expansion (The 10 Key Polish Upgrades)
+
+1. **Metroidvania Inventory Screen & Modular Interactive Shopkeeper Emporium**:
+   - **Inventory Screen (`[TAB]`, `[I]`, or `[SELECT]`)**: Two-column layout presenting Froggy's Amphibian Physiology (HP, Body Temperature, Thermal Buffs, Oxygen, Bug Pouch), Ancient Relics & Gear (Stomping Boots, Red Boomerang, Chameleon Lash, Webbed Amphibian), the 4 Boss Key Fragments with Master Key assembly status, and an interactive Consumables Pouch. Players can select and consume remedies (`Heart Nectar`, `Glacial Draught`, `Pyro Broth`, `Grotto Air Reed`) directly from their bag with `[A]` or `[SPACE]`.
+   - **Modular Interactive Shopkeeper Emporium ([`ShopMenu`](file:///c:/AGProj/FroggyDemo/froggy_engine.py))**: Froggy can browse wares, check price tags in captured bugs, read descriptions, inspect currently carried quantities, and purchase remedies.
+   - **Single Elder Shopkeeper Rule**: Exactly 1 shopkeeper exists across the entire world: `ELDER MOSSMANTLE, THE ANCIENT MERCHANT` in `entrance_hall`. All other friendly frogs are wise Elders or Hermits.
+2. **Boss Key Fragments -> Master Key Assembly**:
+   - Each boss drops a distinct ancient key fragment upon defeat:
+     - **Emperor Mantis**: Mantis Jade Crest (`KEY_MANTIS`)
+     - **Dread Hound**: Hound Obsidian Fang (`KEY_HOUND`)
+     - **Giga Toad**: Toad Ruby Sigil (`KEY_TOAD`)
+     - **Falo Snowman**: Falo Glacial Core (`KEY_FALO`)
+   - Collecting all 4 fragments automatically merges them into the **Master Key of the Ancients** (`player.has_master_key == True`), triggering an unseal fanfare and unlocking the sacred chamber door.
+3. **Colossal Master Key Door ([`DoorPortal`](file:///c:/AGProj/FroggyDemo/froggy_engine.py))**:
+   - Located at Door `L` in `toad_colosseum`, guarding the entrance to `victory_chamber`.
+   - Fully animated 48x64 gate with 4 glowing runic fragment sockets, pulsing amphibian eye lock (`master_key_door_state_0..4.png`), and crimson sealed barrier.
+   - Interacting with $< 4$ fragments displays a daunting banner: `ANCIENT SANCTUARY SEAL: 4 KEY FRAGMENTS REQUIRED (N/4 RESTORED)`.
+   - Interacting with all 4 fragments triggers a screen-rumble unsealing sequence with golden rune particles, shattering the ancient seal permanently.
+4. **Giga Toad Boss Animation & Hitbox Fix**:
+   - Eliminated sprite resizing and continuous baseline jump artifacts. All 5 poses (Idle, Slam, Punch, Dazed, Enraged) now share a uniform 80x80 canvas anchored to a fixed $Y=76$ bottom baseline.
+   - Fixed the 6-frame flip-flop glitch in the enraged state.
+   - Hitbox locked to 64x64.
+   - Replaced rectangular flashing box artifacts with a pixel-perfect alpha silhouette flash ([`create_silhouette_flash`](file:///c:/AGProj/FroggyDemo/froggy_engine.py)).
+5. **Dread Hound Boss Generative Upgrade**:
+   - Sized to an imposing 96x96 canvas across all 4 poses (Idle, Howl, Lunge, Dazed) on a uniform $Y=91$ baseline, natively aligned left.
+   - Hitbox locked to 80x76.
+   - Pixel-perfect alpha silhouette flash and drops the `KEY_HOUND` fragment.
+6. **Jungle Ruins Starting Level & Tutorial Elder**:
+   - Froggy starts in `level_1` (Jungle Ruins Canopy), where the ambient temperature is stable at $100.0\%$ and never drops.
+   - Wise Elder `ELDER MOSSBEARD` stands right at spawn to explain that evil bugs have overrun the ruins, introduces cold-blooded amphibian thermoregulation gently, and warns of thermal extremes in ice and volcanic biomes.
+7. **L Toggle Backend Level Name**:
+   - Pressing `[L]` (or `[LT]` on gamepad) now flashes a banner displaying the exact room ID: `HINTS: ON | BACKEND LEVEL: 'volcanic_chasm'`.
+   - When hints are active, a golden `[ZONE: <room_id>]` badge is permanently rendered on the top HUD bar for precise per-level feedback.
+8. **Constant 60 FPS Lock**:
+   - Replaced `clock.tick(60)` with `clock.tick_busy_loop(60)`.
+   - Activated Windows sub-millisecond multimedia timer resolution via `ctypes.windll.winmm.timeBeginPeriod(1)` to eliminate micro-stutter and lock frametimes at a consistent $\le 16.6\text{ ms}$.
+9. **Metroid-Style Exit Doors**:
+   - Integrated cyan airlock portals (`metroid_door_cyan.png`) and red boss blast shields (`metroid_door_red.png`) with animated pulsing energy crossbars and glowing force fields.
+10. **Systematic Art Upgrade (Legend of Mana Style)**:
+    - Integrated high-resolution hand-drawn 640x360 jungle ruins canopy and temple background (`jungle_ruins_bg.png`).
+    - Hand-drawn 3-pose Elder Tree Frog sprites (`npc_elder_0..2.png`).
+    - Hand-drawn Giga Toad 5-pose set and Dread Hound 4-pose set.
+    - Hand-drawn boss key fragment icons and Master Key keystone.

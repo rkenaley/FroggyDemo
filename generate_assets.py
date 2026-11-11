@@ -158,6 +158,28 @@ def generate_autotile_set(theme="jungle"):
         top_dark = (118, 178, 228, 255)   # Glacial blue
         accent_glow = (220, 248, 255, 255)
         prefix = "ice"
+    elif theme == "volcanic":
+        # Volcanic Magma Chasm theme (Charred Obsidian Basalt & Glowing Magma Crust)
+        stone_dark = (42, 18, 16, 255)
+        stone_mid = (68, 30, 26, 255)
+        stone_hi = (108, 48, 38, 255)
+        mortar = (24, 10, 10, 255)
+        top_bright = (255, 168, 45, 255)   # Molten ember crust
+        top_mid = (225, 78, 28, 255)      # Glowing magma slag
+        top_dark = (138, 32, 18, 255)     # Scorched basalt lip
+        accent_glow = (255, 225, 85, 255)
+        prefix = "volcanic"
+    elif theme == "underwater":
+        # Sunken Submarine Grotto theme (Abyssal Coral Stone & Bioluminescent Kelp)
+        stone_dark = (16, 48, 68, 255)
+        stone_mid = (28, 78, 108, 255)
+        stone_hi = (52, 122, 158, 255)
+        mortar = (10, 30, 46, 255)
+        top_bright = (75, 250, 215, 255)   # Seafoam kelp glow
+        top_mid = (38, 188, 168, 255)     # Coral turquoise
+        top_dark = (20, 118, 112, 255)    # Deep sea moss
+        accent_glow = (165, 255, 245, 255)
+        prefix = "underwater"
     else:
         # Sinister Emperor Mantis Sanctum theme (Obsidian, Crimson & Violet Runes)
         stone_dark = (36, 18, 34, 255)
@@ -328,6 +350,68 @@ def generate_special_tiles():
                 else:
                     px[x, y] = (14, 68, 82, 190)
         img.save(os.path.join(TILES_DIR, f"water_{frame}.png"))
+
+    # 4. Animated Volcanic Magma / Lava Hazard (4 frames)
+    for frame in range(4):
+        img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        px = img.load()
+        for x in range(16):
+            crest = 2 + int(math.sin((x + frame * 4) * 0.48) * 1.5)
+            for y in range(crest, 16):
+                if y == crest:
+                    px[x, y] = (255, 248, 120, 255)
+                elif y == crest + 1:
+                    px[x, y] = (255, 168, 42, 250)
+                elif y < crest + 5:
+                    px[x, y] = (232, 65, 24, 240)
+                else:
+                    px[x, y] = (148, 22, 16, 235)
+        img.save(os.path.join(TILES_DIR, f"lava_{frame}.png"))
+
+    # 5. Cascading Cold Waterfall Mist Column (4 frames for cooling volcanic overheat)
+    for frame in range(4):
+        img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        px = img.load()
+        for y in range(16):
+            for x in range(2, 14):
+                wave = (y + frame * 4 + (x % 3) * 2) % 8
+                if wave < 2:
+                    px[x, y] = (235, 252, 255, 215)
+                elif wave < 5:
+                    px[x, y] = (120, 228, 255, 175)
+                else:
+                    px[x, y] = (65, 178, 235, 135)
+        img.save(os.path.join(TILES_DIR, f"waterfall_{frame}.png"))
+
+    # 6. Submarine Air Bubble Vent (2 frames for Sunken Grotto oxygen refill)
+    for frame in range(2):
+        img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        # Coral/stone vent base at bottom
+        d.polygon([(2, 15), (5, 9), (11, 9), (14, 15)], fill=(38, 118, 138, 255), outline=(18, 62, 78, 255))
+        d.ellipse([5, 8, 11, 11], fill=(95, 245, 235, 255))
+        # Rising shimmering oxygen bubble
+        by = 3 - frame * 2
+        d.ellipse([4, by, 12, by + 8], fill=(165, 248, 255, 210), outline=(255, 255, 255, 245))
+        d.point([(6, by + 2), (7, by + 2)], fill=(255, 255, 255, 255))
+        img.save(os.path.join(TILES_DIR, f"bubble_vent_{frame}.png"))
+
+    # 7. Cracked Burrow Rock Tile ('B' - destructible by Charged Muhlaser Frogbeam)
+    for frame in range(2):
+        img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        # Heavy bevelled mineral boulder base
+        d.rectangle([0, 0, 15, 15], fill=(42, 54, 72, 255), outline=(18, 24, 34, 255))
+        d.polygon([(1, 1), (14, 1), (12, 5), (3, 5)], fill=(68, 86, 112, 255))
+        d.polygon([(1, 14), (14, 14), (12, 10), (3, 10)], fill=(28, 36, 52, 255))
+        # Pulsing bioluminescent laser-resonance fissures across the rock
+        fissure_col = (95, 248, 255, 255) if frame == 0 else (255, 95, 215, 255)
+        core_col = (255, 255, 255, 255) if frame == 0 else (185, 255, 255, 255)
+        d.line([(2, 3), (7, 8), (13, 4)], fill=fissure_col, width=2)
+        d.line([(7, 8), (5, 13)], fill=fissure_col, width=2)
+        d.line([(7, 8), (12, 13)], fill=fissure_col, width=1)
+        d.point([(7, 8), (6, 7), (8, 7)], fill=core_col)
+        img.save(os.path.join(TILES_DIR, f"burrow_rock_{frame}.png"))
 
 
 # =============================================================================
@@ -791,7 +875,23 @@ def generate_froggy_sprites():
         "froggy_tongue_0.png": tongue_0,
     }
     for filename, grid in frames.items():
-        image_from_grid(grid).save(os.path.join(SPRITES_DIR, filename))
+        out_path = os.path.join(SPRITES_DIR, filename)
+        if os.path.exists(out_path):
+            try:
+                existing = Image.open(out_path)
+                if existing.size == (32, 32):
+                    continue
+            except Exception:
+                pass
+        raw_img = image_from_grid(grid)
+        canvas_32 = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        canvas_32.paste(raw_img, ((32 - raw_img.width) // 2, 32 - raw_img.height), raw_img)
+        canvas_32.save(out_path)
+    try:
+        import sprite_studio
+        sprite_studio.build_and_export_all_32bit_sprites()
+    except Exception:
+        pass
 
 
 def generate_enemy_and_boss_sprites():
@@ -843,74 +943,74 @@ def generate_enemy_and_boss_sprites():
 
     ant_0 = [
         "........................",
-        "......KK..........KK....",
-        ".......KK........KK.....",
-        "........KK......KK......",
-        ".........ddYYYYdd.......",
-        "........dYYZZZZYYd......",
-        ".......dYYYYYYYYYYd.....",
-        "......dKKKKWWWWKKKKd....",
-        ".....dWW..dWWWWd..WWd...",
-        ".....dd...dWWWWd...dd...",
-        "....ddbbooobbbbooobbdd..",
-        "...dbooOOOOOOOOOOOood...",
-        "..dboOOOOOOOOOOOOOOOod..",
-        "..dboOOOOOOOOOOOOOOOod..",
-        "...dbooOOOOOOOOOOOood...",
-        "....ddbbooobbbbooobbdd..",
-        "....dKK.dKK..dKK.dKKd...",
-        "...dKK...dKK..dKK..dKKd.",
-        "..dKK.....dK...dK...dKKd",
-        "..dK.......d...d.....dKd",
+        ".............KK...KK....",
+        "..............KK...KK...",
+        "...............KK...KK..",
+        "............ddYYYYYYdd..",
+        "...........dYYZZZZZZYYd.",
+        "..........dYYYYYYYYYYYYd",
+        "..ddbbdd..dKKKKWWWWKKKKd",
+        ".dboOOOob.dOOOOdWWKWWd..",
+        "dboOOOOOobdOOOOdWWWWWWd.",
+        "dboOOOOOobbbbbbddWWWWWWd",
+        "dboOOOOOobOOOOObdd....dd",
+        ".dboOOOob.dOOOOd........",
+        "..ddbbdd...dddd.........",
+        "...dKK...dKK...dKK..dKK.",
+        "..dKK...dKK...dKK....dKK",
+        ".dKK...dKK...dKK......dK",
+        ".dK....dK....dK........d",
+        "........................",
+        "........................",
         "........................",
         "........................",
     ]
     ant_1 = [
         "........................",
+        "..............KK...KK...",
+        "...............KK...KK..",
+        "................KK...KK.",
+        "............ddYYYYYYdd..",
+        "...........dYYZZZZZZYYd.",
+        "..........dYYYYYYYYYYYYd",
+        "..ddbbdd..dKKKKWWWWKKKKd",
+        ".dboOOOob.dOOOOdWWKWWd..",
+        "dboOOOOOobdOOOOdWWWWWWd.",
+        "dboOOOOOobbbbbbddWWWWWWd",
+        "dboOOOOOobOOOOObdd....dd",
+        ".dboOOOob.dOOOOd........",
+        "..ddbbdd...dddd.........",
+        "....dKK..dKK..dKK..dKK..",
+        "....dKK..dKK..dKK...dKK.",
+        ".....dK...dK...dK....dK.",
+        "......d....d....d.....d.",
         "........................",
-        "......KK..........KK....",
-        ".......KK........KK.....",
-        "........KK......KK......",
-        ".........ddYYYYdd.......",
-        "........dYYZZZZYYd......",
-        ".......dYYYYYYYYYYd.....",
-        "......dKKKKWWWWKKKKd....",
-        ".....dWW..dWWWWd..WWd...",
-        ".....dd...dWWWWd...dd...",
-        "....ddbbooobbbbooobbdd..",
-        "...dbooOOOOOOOOOOOood...",
-        "..dboOOOOOOOOOOOOOOOod..",
-        "..dboOOOOOOOOOOOOOOOod..",
-        "...dbooOOOOOOOOOOOood...",
-        "....ddbbooobbbbooobbdd..",
-        ".....dKK..dKK..dKK..d...",
-        "....dKK...dKK..dKK...d..",
-        "....dK.....dK...dK....d.",
+        "........................",
         "........................",
         "........................",
     ]
     ant_charge = [
         "........................",
         "........................",
-        "........................",
-        "........................",
-        "....KK............KK....",
-        ".....KK..........KK.....",
-        "......ddYYYYYYYYdd......",
-        ".....dYYZZZZZZZZYYd.....",
-        "....dYYYYYYYYYYYYYYd....",
-        "...dKKKKWWWWWWWWKKKKd...",
-        "..dWWWWdWWWWWWWWdWWWWd..",
-        "..dd...dWWWWWWWWd...dd..",
-        "...ddbboooooooooobbdd...",
-        "..dbooOOOOOOOOOOOOood...",
-        ".dboOOOOOOOOOOOOOOOOod..",
-        ".dboOOOOOOOOOOOOOOOOod..",
-        "..ddbboooooooooobbdd....",
+        "............KK....KK....",
+        ".............KK....KK...",
+        "............ddYYYYYYYYdd",
+        "...........dYYZZZZZZZZYY",
+        "..........dYYYYYYYYYYYYY",
+        ".ddbbbbdd.dKKKKWWWWKKKKd",
+        "dboOOOOOobdOOOOdWWKWWd..",
+        "dboOOOOOObbOOOOdWWWWWWWW",
+        "dboOOOOOObbbbbbddWWWWWWW",
+        "dboOOOOOobOOOOObddWWWWWW",
+        ".ddbbbbdd..dddd.........",
         "...dKK..dKK..dKK..dKKd..",
         "..dKK...dKK..dKK...dKKd.",
         ".dKK.....dK...dK....dKKd",
         ".dK.......d...d......dKd",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
         "........................",
     ]
 
@@ -1101,20 +1201,20 @@ def generate_enemy_and_boss_sprites():
         "................",
     ]
 
-    # Icy World Enemies: Stink Bug & Ice Wolf Spider
+    # Icy World Enemies: Stink Bug & Ice Wolf Spider (Right-facing side profiles)
     stink_bug_0 = [
         "........................",
-        ".........aa..aa.........",
-        "........aAA..AAa........",
-        ".........aa..aa.........",
-        "........ddAAAAaadd......",
-        "......ddAaaaaaaAAdd.....",
-        ".....dAaaaaaaaaaaaaAd...",
-        "....dAaaaAAAAAAAAaaaAd..",
-        "...dAaaAAaaaaaaAAaaaAd..",
-        "...dAaaAAaaaaaaAAaaaAd..",
-        "...dAaaaAAAAAAAAaaaAd...",
-        "...ddAaaaaaaaaaaaaAdd...",
+        "..............aa..aa....",
+        "...............aAA.AAa..",
+        "................aa..aa..",
+        ".......ddAAAAaadd.......",
+        ".....ddAaaaaaaaaAdd.....",
+        "....dAaaaaaaaaaaaaAd....",
+        "...dAaaaAAAAAAAAaaaAdd..",
+        "..dAaaAAaaaaaaAAaaaaWWd.",
+        "..dAaaAAaaaaaaAAaaaWKKWd",
+        "...dAaaaAAAAAAAAaaaAWWd.",
+        "...ddAaaaaaaaaaaaaAddd..",
         "....ddAAAAAAAAAAAAdd....",
         ".....dddddddddddddd.....",
         "....dKK..dKK...dKK..d...",
@@ -1126,17 +1226,17 @@ def generate_enemy_and_boss_sprites():
     ]
     stink_bug_1 = [
         "........................",
-        "........aa....aa........",
-        ".........aAA..AAa.......",
-        "..........aa..aa........",
-        "........ddAAAAaadd......",
-        "......ddAaaaaaaAAdd.....",
-        ".....dAaaaaaaaaaaaaAd...",
-        "....dAaaaAAAAAAAAaaaAd..",
-        "...dAaaAAaaaaaaAAaaaAd..",
-        "...dAaaAAaaaaaaAAaaaAd..",
-        "...dAaaaAAAAAAAAaaaAd...",
-        "...ddAaaaaaaaaaaaaAdd...",
+        ".............aa...aa....",
+        "..............aAA..AAa..",
+        "...............aa...aa..",
+        ".......ddAAAAaadd.......",
+        ".....ddAaaaaaaaaAdd.....",
+        "....dAaaaaaaaaaaaaAd....",
+        "...dAaaaAAAAAAAAaaaAdd..",
+        "..dAaaAAaaaaaaAAaaaaWWd.",
+        "..dAaaAAaaaaaaAAaaaWKKWd",
+        "...dAaaaAAAAAAAAaaaAWWd.",
+        "...ddAaaaaaaaaaaaaAddd..",
         "....ddAAAAAAAAAAAAdd....",
         ".....dddddddddddddd.....",
         "...dKK.dKK...dKK.dKKd...",
@@ -1172,13 +1272,13 @@ def generate_enemy_and_boss_sprites():
         "....sSSSSs....sSSSSs....",
         "....sSSWWs....sWWSSs....",
         ".....sSSs......sSSs.....",
-        "....sSSSSSSSSSSSSSSs....",
-        "...sSSSSSSSSSSSSSSSSs...",
-        "...sSS.NNSSSSSSNN.SSs...",
-        "...sS..NNSSSSSSNN..Ss...",
-        "...sSSSSSSSSSSSSSSSSs...",
-        "....sSSSSSSSSSSSSSSs....",
-        ".....ssSSSSSSSSSSss.....",
+        "...sSSSSSSSSSSSSSSs.....",
+        "..sSSSSSSSSSSSSSSSSss...",
+        "..sSSSSSSSSSSSSNNWWSSs..",
+        "..sSSSSSSSSSSSSNNKKSSs..",
+        "..sSSSSSSSSSSSSSSSSWWs..",
+        "...sSSSSSSSSSSSSSSWWs...",
+        "....ssSSSSSSSSSSssss....",
         "....dSSddSSSSSSddSSd....",
         "...dSSd..dddddd..dSSd...",
         "..dSSd............dSSd..",
@@ -1195,13 +1295,13 @@ def generate_enemy_and_boss_sprites():
         "...sSSs..........sSSs...",
         "...sSSs..........sSSs...",
         "....sSSs........sSSs....",
-        ".....sSSSSSSSSSSSSs.....",
-        "....sSSSSSSSSSSSSSSs....",
-        "...sSS.NNSSSSSSNN.SSs...",
-        "...sS..NNSSSSSSNN..Ss...",
-        "...sSSSSSSSSSSSSSSSSs...",
-        "....sSSSSSSSSSSSSSSs....",
-        ".....ssSSSSSSSSSSss.....",
+        "....sSSSSSSSSSSSSs......",
+        "...sSSSSSSSSSSSSSSss....",
+        "..sSSSSSSSSSSSSNNWWSSs..",
+        "..sSSSSSSSSSSSSNNKKSSs..",
+        "..sSSSSSSSSSSSSSSSSWWs..",
+        "...sSSSSSSSSSSSSSSWWs...",
+        "....ssSSSSSSSSSSssss....",
         "....dSSddddddddddSSd....",
         "...dSSd..........dSSd...",
         "..dSSd............dSSd..",
@@ -1404,6 +1504,71 @@ def generate_enemy_and_boss_sprites():
         img.save(os.path.join(SPRITES_DIR, f"falo_{state}.png"))
 
 
+def generate_npc_sprites():
+    """
+    Generates 32x32 friendly NPC frog sprites:
+      1. Elder Tree Frog (`npc_elder_0.png`, `npc_elder_1.png`):
+         Wise ancient amphibian sage with snowy white beard/brows, teal-emerald skin,
+         mystic robe, and gnarled wooden staff topped with a glowing amber orb.
+      2. Village Shopkeeper Frog (`npc_shopkeeper_0.png`, `npc_shopkeeper_1.png`):
+         Jovial merchant frog wearing a crimson/gold vest, merchant cap, coin pouch,
+         and holding a glowing lantern & potion ware.
+    """
+    for frame in range(2):
+        bob = -1 if frame == 1 else 0
+
+        # 1. Elder Tree Frog (32x32)
+        elder = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        d = ImageDraw.Draw(elder)
+        # Mystic Cloak / Robe
+        d.polygon([(7, 29), (10, 15 + bob), (22, 15 + bob), (25, 29)], fill=(48, 86, 118, 255), outline=(22, 42, 64, 255))
+        d.line([(16, 16 + bob), (16, 29)], fill=(235, 195, 72, 255), width=2)
+        # Feet
+        d.ellipse([6, 27, 13, 31], fill=(42, 148, 76, 255), outline=(18, 64, 32, 255))
+        d.ellipse([19, 27, 26, 31], fill=(42, 148, 76, 255), outline=(18, 64, 32, 255))
+        # Head
+        d.ellipse([8, 7 + bob, 24, 19 + bob], fill=(56, 178, 92, 255), outline=(20, 68, 34, 255))
+        d.ellipse([10, 12 + bob, 22, 18 + bob], fill=(188, 232, 142, 255))
+        # Wise Eyes & Bushy White Brows
+        d.ellipse([9, 5 + bob, 14, 10 + bob], fill=(255, 255, 255, 255), outline=(20, 68, 34, 255))
+        d.ellipse([18, 5 + bob, 23, 10 + bob], fill=(255, 255, 255, 255), outline=(20, 68, 34, 255))
+        d.point([(12, 7 + bob), (20, 7 + bob)], fill=(18, 22, 30, 255))
+        d.line([(8, 5 + bob), (14, 4 + bob)], fill=(242, 246, 255, 255), width=2)
+        d.line([(18, 4 + bob), (24, 5 + bob)], fill=(242, 246, 255, 255), width=2)
+        # Flowing White Sage Beard
+        d.polygon([(11, 15 + bob), (21, 15 + bob), (18, 24 + bob), (14, 24 + bob)], fill=(242, 246, 255, 255), outline=(180, 195, 215, 255))
+        # Gnarled Wooden Staff & Glowing Amber Crystal
+        d.line([(26, 8 + bob), (26, 30)], fill=(138, 82, 38, 255), width=2)
+        orb_col = (255, 235, 95, 255) if frame == 0 else (95, 245, 235, 255)
+        d.ellipse([23, 3 + bob, 29, 9 + bob], fill=orb_col, outline=(255, 255, 255, 255))
+        elder.save(os.path.join(SPRITES_DIR, f"npc_elder_{frame}.png"))
+
+        # 2. Village Shopkeeper Frog (32x32)
+        shop = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        sd = ImageDraw.Draw(shop)
+        # Merchant Vest & Apron
+        sd.ellipse([7, 14 + bob, 25, 29], fill=(188, 38, 58, 255), outline=(92, 16, 28, 255))
+        sd.rectangle([12, 16 + bob, 20, 28], fill=(245, 225, 168, 255), outline=(168, 128, 64, 255))
+        # Gold Coin Belt Buckle
+        sd.ellipse([14, 20 + bob, 18, 24 + bob], fill=(255, 215, 64, 255), outline=(185, 125, 22, 255))
+        # Feet
+        sd.ellipse([6, 27, 13, 31], fill=(72, 198, 84, 255), outline=(22, 72, 32, 255))
+        sd.ellipse([19, 27, 26, 31], fill=(72, 198, 84, 255), outline=(22, 72, 32, 255))
+        # Head
+        sd.ellipse([8, 7 + bob, 24, 18 + bob], fill=(82, 212, 92, 255), outline=(22, 72, 32, 255))
+        sd.ellipse([10, 12 + bob, 22, 17 + bob], fill=(215, 248, 152, 255))
+        # Cheerful Eyes
+        sd.ellipse([9, 5 + bob, 14, 10 + bob], fill=(255, 255, 255, 255), outline=(22, 72, 32, 255))
+        sd.ellipse([18, 5 + bob, 23, 10 + bob], fill=(255, 255, 255, 255), outline=(22, 72, 32, 255))
+        sd.point([(11, 7 + bob), (20, 7 + bob)], fill=(18, 22, 30, 255))
+        # Jaunty Merchant Fez / Bandana Cap
+        sd.polygon([(11, 6 + bob), (21, 6 + bob), (19, 1 + bob), (13, 1 + bob)], fill=(235, 165, 38, 255), outline=(142, 82, 18, 255))
+        # Glowing Potion Vial held in hand
+        vial_col = (255, 75, 145, 255) if frame == 0 else (95, 245, 215, 255)
+        sd.ellipse([2, 15 + bob, 8, 22 + bob], fill=vial_col, outline=(255, 255, 255, 255))
+        sd.rectangle([4, 13 + bob, 6, 15 + bob], fill=(168, 112, 54, 255))
+        shop.save(os.path.join(SPRITES_DIR, f"npc_shopkeeper_{frame}.png"))
+
 
 # =============================================================================
 # 5. ADDITIVE RADIAL LIGHTING MAPS & PROCEDURAL PARALLAX BACKDROPS
@@ -1420,6 +1585,7 @@ def generate_lighting_maps():
         "light_gold.png": (64, (185, 140, 45)),
         "light_magenta.png": (72, (195, 45, 155)),
         "light_crimson.png": (96, (185, 30, 55)),
+        "light_orange.png": (80, (215, 95, 25)),
         "light_player.png": (88, (42, 82, 68)),
     }
 
@@ -1479,10 +1645,26 @@ def generate_procedural_parallax_layers():
             "mid_col": (22, 40, 68, 245),
             "ray_col": (195, 235, 255, 26),
         },
+        "volcanic": {
+            "sky_top": (32, 10, 10),
+            "sky_bot": (98, 28, 14),
+            "far_col": (56, 16, 12, 225),
+            "mid_col": (38, 12, 10, 245),
+            "ray_col": (255, 135, 35, 32),
+        },
+        "underwater": {
+            "sky_top": (6, 22, 44),
+            "sky_bot": (16, 68, 98),
+            "far_col": (12, 46, 72, 220),
+            "mid_col": (8, 32, 54, 240),
+            "ray_col": (75, 245, 225, 28),
+        },
     }
 
     for name, cfg in themes.items():
-        # 1. Base Gradient + Sunbeams / God-Rays Fallback Backdrop
+        rng = random.Random((hash(name) ^ 0x5A3C9E17) & 0xFFFFFFFF)
+
+        # 1. Rear Background Layer (`proc_{name}_sky.png`) — Multi-layered horizon & distant ruins/reefs
         y_grad = np.linspace(0.0, 1.0, h)[:, np.newaxis]
         sky = np.zeros((h, w, 3), dtype=np.uint8)
         for c in range(3):
@@ -1490,46 +1672,292 @@ def generate_procedural_parallax_layers():
                 cfg["sky_top"][c] * (1.0 - y_grad) + cfg["sky_bot"][c] * y_grad
             ).astype(np.uint8)
         base_img = Image.fromarray(sky, mode="RGB").convert("RGBA")
+        bd = ImageDraw.Draw(base_img)
 
-        # Paint diagonal god-rays / light shafts
+        # Paint distant mountain/reef/cathedral range on rear backdrop so fallback themes look lush
+        far_r, far_g, far_b, _ = cfg["far_col"]
+        horizon_dark = (max(4, far_r - 6), max(6, far_g - 6), max(10, far_b - 6), 255)
+        horizon_mid = (min(255, far_r + 14), min(255, far_g + 18), min(255, far_b + 24), 255)
+        horizon_hi = (min(255, far_r + 36), min(255, far_g + 48), min(255, far_b + 58), 255)
+
+        # Distant mountain ridges / sunken oceanic trenches
+        ridge_pts = [(0, h)]
+        for rx in range(0, w + 32, 32):
+            ry = int(135 + 38 * math.sin(rx * 0.018 + rng.uniform(-0.3, 0.3)) + 18 * math.cos(rx * 0.045))
+            ridge_pts.append((rx, ry))
+        ridge_pts.append((w, h))
+        bd.polygon(ridge_pts, fill=horizon_mid)
+
+        # Distant architectural landmarks on rear background (sunken Atlantis temples, Mesoamerican ziggurats, glacier spires)
+        for tx in range(30, w, 160):
+            pw = 88
+            ph = rng.randint(135, 195)
+            by_top = h - ph
+            # Tiered pyramid / sunken temple silhouette with rim highlight
+            for tier in range(4):
+                inset = tier * 10
+                t_top = by_top + tier * 24
+                t_bot = t_top + 26
+                bd.rectangle([tx + inset, t_top, tx + pw - inset, t_bot], fill=horizon_dark, outline=horizon_hi)
+            # Glowing sanctum portal / bioluminescent window
+            glow_c = (95, 245, 235, 210) if name not in ("sanctum", "volcanic") else (255, 85, 95, 220)
+            bd.rectangle([tx + pw // 2 - 5, by_top + 14, tx + pw // 2 + 5, by_top + 34], fill=glow_c)
+
+        # Paint diagonal god-rays / underwater caustic light shafts
         ray_layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         rd = ImageDraw.Draw(ray_layer)
-        for rx in range(40, w, 140):
+        for rx in range(30, w, 130):
             rd.polygon(
-                [(rx, 0), (rx + 55, 0), (rx + 145, h), (rx + 60, h)],
+                [(rx, 0), (rx + 48, 0), (rx + 135, h), (rx + 55, h)],
                 fill=cfg["ray_col"],
             )
         ray_layer = ray_layer.filter(ImageFilter.GaussianBlur(radius=6))
         base_img = Image.alpha_composite(base_img, ray_layer)
         base_img.convert("RGB").save(os.path.join(BG_DIR, f"proc_{name}_sky.png"))
 
-        # 2. Midground Silhouette Layer (Ancient Temple Pillars, Giant Jungle Trees, Lianas)
+        # 2. Front Parallax Layer (`parallax_{name}_mid.png`)
+        # Hand-crafted multi-shaded 16-bit pixel art framing layer with open central vistas
+        # so the lush rear background shines through while adding rich foreground depth!
         mid_img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         md = ImageDraw.Draw(mid_img)
-        rng = random.Random(hash(name) & 0xFFFFFFFF)
 
-        # Distant stepped temple pyramids / cavern stalactites
-        for tx in range(0, w, 160):
-            pw = 110
-            ph = rng.randint(120, 195)
-            # Stepped Mesoamerican ruin silhouette
-            md.rectangle([tx + 10, h - ph, tx + pw - 10, h], fill=cfg["far_col"])
-            md.rectangle([tx + 24, h - ph - 28, tx + pw - 24, h - ph], fill=cfg["far_col"])
-            # Glowing window slits in distant ruins
-            glow_c = (95, 240, 225, 140) if name != "sanctum" else (255, 65, 115, 160)
-            md.rectangle([tx + 48, h - ph - 14, tx + 54, h - ph - 4], fill=glow_c)
+        # Theme-specific 5-tone palettes for rich pixel-painterly foreground craftsmanship
+        palettes = {
+            "canopy": {
+                "outline": (10, 22, 18, 255),
+                "bark_dark": (38, 24, 18, 255),
+                "bark_mid": (64, 40, 26, 255),
+                "bark_hi": (96, 62, 38, 255),
+                "bark_rim": (128, 88, 52, 255),
+                "foliage_dark": (16, 56, 36, 250),
+                "foliage_mid": (28, 96, 54, 250),
+                "foliage_hi": (56, 148, 76, 250),
+                "foliage_rim": (112, 208, 104, 255),
+                "accent": (95, 250, 220, 255),
+                "accent_alt": (255, 215, 75, 255),
+            },
+            "temple": {
+                "outline": (12, 16, 28, 255),
+                "bark_dark": (30, 38, 58, 255),
+                "bark_mid": (48, 62, 88, 255),
+                "bark_hi": (74, 94, 126, 255),
+                "bark_rim": (110, 138, 175, 255),
+                "foliage_dark": (18, 62, 48, 250),
+                "foliage_mid": (34, 108, 76, 250),
+                "foliage_hi": (68, 162, 104, 250),
+                "foliage_rim": (118, 218, 142, 255),
+                "accent": (75, 240, 255, 255),
+                "accent_alt": (245, 195, 65, 255),
+            },
+            "cavern": {
+                "outline": (10, 14, 26, 255),
+                "bark_dark": (24, 32, 52, 255),
+                "bark_mid": (38, 52, 78, 255),
+                "bark_hi": (58, 82, 114, 255),
+                "bark_rim": (88, 124, 162, 255),
+                "foliage_dark": (22, 48, 68, 250),
+                "foliage_mid": (38, 82, 112, 250),
+                "foliage_hi": (65, 138, 175, 250),
+                "foliage_rim": (115, 215, 238, 255),
+                "accent": (85, 248, 235, 255),
+                "accent_alt": (235, 85, 215, 255),
+            },
+            "sanctum": {
+                "outline": (18, 6, 16, 255),
+                "bark_dark": (42, 14, 32, 255),
+                "bark_mid": (68, 22, 48, 255),
+                "bark_hi": (104, 36, 72, 255),
+                "bark_rim": (152, 58, 98, 255),
+                "foliage_dark": (32, 12, 26, 250),
+                "foliage_mid": (58, 18, 42, 250),
+                "foliage_hi": (98, 28, 62, 250),
+                "foliage_rim": (185, 48, 92, 255),
+                "accent": (255, 62, 108, 255),
+                "accent_alt": (255, 208, 72, 255),
+            },
+            "ice": {
+                "outline": (12, 22, 44, 255),
+                "bark_dark": (32, 58, 98, 255),
+                "bark_mid": (54, 96, 152, 255),
+                "bark_hi": (92, 154, 214, 255),
+                "bark_rim": (175, 228, 255, 255),
+                "foliage_dark": (28, 52, 88, 250),
+                "foliage_mid": (48, 88, 142, 250),
+                "foliage_hi": (88, 148, 212, 250),
+                "foliage_rim": (205, 242, 255, 255),
+                "accent": (145, 245, 255, 255),
+                "accent_alt": (255, 255, 255, 255),
+            },
+            "volcanic": {
+                "outline": (18, 6, 6, 255),
+                "bark_dark": (38, 16, 16, 255),
+                "bark_mid": (62, 26, 24, 255),
+                "bark_hi": (94, 42, 34, 255),
+                "bark_rim": (142, 68, 42, 255),
+                "foliage_dark": (44, 14, 12, 250),
+                "foliage_mid": (78, 24, 18, 250),
+                "foliage_hi": (135, 42, 24, 250),
+                "foliage_rim": (235, 95, 28, 255),
+                "accent": (255, 145, 28, 255),
+                "accent_alt": (255, 235, 75, 255),
+            },
+            "underwater": {
+                "outline": (6, 18, 32, 255),
+                "bark_dark": (16, 46, 68, 255),
+                "bark_mid": (28, 76, 104, 255),
+                "bark_hi": (48, 118, 148, 255),
+                "bark_rim": (88, 178, 204, 255),
+                "foliage_dark": (14, 64, 58, 250),
+                "foliage_mid": (24, 108, 92, 250),
+                "foliage_hi": (46, 162, 132, 250),
+                "foliage_rim": (92, 224, 178, 255),
+                "accent": (85, 250, 235, 255),
+                "accent_alt": (245, 82, 178, 255),
+            },
+        }
+        pal = palettes.get(name, palettes["canopy"])
 
-        # Giant Foreground/Midground Canopy Tree Trunks & Hanging Vines
-        for gx in range(20, w, 128):
-            trunk_w = rng.randint(22, 34)
-            md.rectangle([gx, 0, gx + trunk_w, h], fill=cfg["mid_col"])
-            # Root buttresses at bottom
-            md.polygon(
-                [(gx - 18, h), (gx, h - 70), (gx + trunk_w, h - 70), (gx + trunk_w + 18, h)],
-                fill=cfg["mid_col"],
-            )
-            # Canopy arch leaves at top
-            md.ellipse([gx - 45, -35, gx + trunk_w + 45, 58], fill=cfg["mid_col"])
+        # Space grand foreground pillars wide apart (every 214px -> 3 pillars across 640px)
+        # so huge open windows of the rear background are framed, never crudely covered!
+        pillar_xs = [28, 242, 456]
+        for idx, gx in enumerate(pillar_xs):
+            pw = 34 if idx != 1 else 30
+            # A. Multi-shaded Pillar / Tree Trunk / Fluted Column / Basalt Spire
+            # Outer silhouette with dark outline
+            md.rectangle([gx - 1, 0, gx + pw + 1, h], fill=pal["outline"])
+            md.rectangle([gx, 0, gx + pw, h], fill=pal["bark_dark"])
+            # Mid-tone core & directional highlight bands
+            md.rectangle([gx + 4, 0, gx + pw - 5, h], fill=pal["bark_mid"])
+            md.rectangle([gx + 7, 0, gx + pw // 2 + 2, h], fill=pal["bark_hi"])
+            md.line([(gx + 8, 0), (gx + 8, h)], fill=pal["bark_rim"], width=2)
+
+            if name == "canopy":
+                # Gnarled organic mahogany bark grooves, twisting roots & mossy knots
+                for by in range(16, h - 20, 28):
+                    md.line([(gx + 3, by), (gx + 6, by + 18)], fill=pal["outline"], width=1)
+                    md.line([(gx + pw - 6, by + 8), (gx + pw - 4, by + 24)], fill=pal["bark_dark"], width=2)
+                    if (by // 28) % 3 == idx % 3:
+                        # Glowing mossy hollow knot on trunk
+                        md.ellipse([gx + 10, by + 4, gx + 20, by + 14], fill=pal["outline"])
+                        md.ellipse([gx + 12, by + 6, gx + 18, by + 12], fill=pal["accent"])
+                        md.arc([gx + 9, by + 2, gx + 21, by + 10], 180, 360, fill=pal["foliage_hi"], width=2)
+                # Sweeping root buttresses with multi-tone shading at bottom
+                md.polygon(
+                    [(gx - 22, h), (gx, h - 68), (gx + 8, h - 58), (gx - 6, h)],
+                    fill=pal["bark_mid"],
+                    outline=pal["outline"],
+                )
+                md.polygon(
+                    [(gx + pw + 22, h), (gx + pw, h - 68), (gx + pw - 8, h - 58), (gx + pw + 6, h)],
+                    fill=pal["bark_dark"],
+                    outline=pal["outline"],
+                )
+
+            elif name in ("temple", "sanctum", "underwater"):
+                # Chiseled stone masonry blocks / Gothic cathedral ribs / Atlantean fluted marble
+                for by in range(0, h, 24):
+                    # Horizontal mortar seam & bevel highlight
+                    md.line([(gx, by), (gx + pw, by)], fill=pal["outline"], width=2)
+                    md.line([(gx + 2, by + 2), (gx + pw - 2, by + 2)], fill=pal["bark_rim"], width=1)
+                    # Carved glowing rune / rose filigree / coral inlay every second block
+                    if (by // 24) % 2 == 0:
+                        cx = gx + pw // 2
+                        md.rectangle([cx - 5, by + 6, cx + 5, by + 18], fill=pal["outline"])
+                        md.rectangle([cx - 3, by + 8, cx + 3, by + 16], fill=pal["accent_alt"] if name == "sanctum" else pal["accent"])
+                        md.point((cx, by + 12), fill=(255, 255, 255, 255))
+                # Ornate stepped column base & capital
+                for base_y in (18, h - 32):
+                    md.rectangle([gx - 8, base_y, gx + pw + 8, base_y + 12], fill=pal["bark_mid"], outline=pal["outline"])
+                    md.rectangle([gx - 6, base_y + 2, gx + pw + 6, base_y + 5], fill=pal["bark_hi"])
+                    md.line([(gx - 6, base_y + 2), (gx + pw + 6, base_y + 2)], fill=pal["bark_rim"], width=1)
+
+            elif name in ("cavern", "ice", "volcanic"):
+                # Striated rock / glacier crystal facets / cracked magma basalt
+                for by in range(12, h - 12, 22):
+                    crack_col = pal["accent"] if name == "volcanic" else pal["bark_rim"]
+                    md.line([(gx + 4, by), (gx + pw // 2, by + 8), (gx + pw - 4, by + 3)], fill=crack_col, width=2)
+                    if name == "volcanic" and (by // 22) % 2 == 0:
+                        md.line([(gx + 6, by + 1), (gx + pw // 2, by + 8)], fill=pal["accent_alt"], width=1)
+
+            # B. Upper Archway Canopy / Gothic Vault / Kelp & Coral Crown (top y = 0..56)
+            # Layered scalloped leaf clusters / gothic arches bridging between pillars
+            arch_span = 214
+            for step in range(0, arch_span, 26):
+                ax = (gx + step) % w
+                # Arch curve dips near pillars (step near 0 or arch_span) and opens high in the middle!
+                dist_from_mid = abs(step - arch_span // 2) / (arch_span / 2.0)
+                arch_y = int(10 + 34 * (dist_from_mid ** 1.7))
+                rad_x, rad_y = 20, 14
+                md.ellipse([ax - rad_x, arch_y - rad_y, ax + rad_x, arch_y + rad_y], fill=pal["foliage_dark"], outline=pal["outline"])
+                md.ellipse([ax - rad_x + 3, arch_y - rad_y + 2, ax + rad_x - 3, arch_y + rad_y - 3], fill=pal["foliage_mid"])
+                md.chord([ax - rad_x + 5, arch_y - rad_y + 3, ax + rad_x - 5, arch_y + 2], 180, 360, fill=pal["foliage_hi"])
+                md.arc([ax - rad_x + 6, arch_y - rad_y + 3, ax + rad_x - 6, arch_y], 200, 340, fill=pal["foliage_rim"], width=1)
+
+            # C. Hanging Vines / Gothic Chains / Icicles / Swaying Underwater Kelp
+            for v_offset in (54, 158):
+                vx = (gx + v_offset) % w
+                vine_len = rng.randint(58, 108)
+                if name == "ice":
+                    # Faceted crystal icicle spike
+                    md.polygon([(vx - 6, 0), (vx + 6, 0), (vx, vine_len)], fill=pal["bark_hi"], outline=pal["outline"])
+                    md.polygon([(vx - 3, 0), (vx + 1, 0), (vx, vine_len - 8)], fill=pal["bark_rim"])
+                elif name == "volcanic":
+                    # Heavy iron chain with glowing ember brazier at bottom
+                    for cy in range(4, vine_len, 8):
+                        md.ellipse([vx - 3, cy, vx + 3, cy + 6], fill=pal["bark_hi"], outline=pal["outline"])
+                    md.polygon([(vx - 8, vine_len), (vx + 8, vine_len), (vx + 5, vine_len + 8), (vx - 5, vine_len + 8)], fill=pal["bark_mid"], outline=pal["outline"])
+                    md.ellipse([vx - 5, vine_len - 3, vx + 5, vine_len + 3], fill=pal["accent_alt"])
+                else:
+                    # Draped botanical liana / thorny rose vine / kelp frond with individual leaves & glowing lantern bud
+                    pts = []
+                    for vy in range(0, vine_len, 6):
+                        sway_x = vx + int(math.sin(vy * 0.12 + idx) * 4)
+                        pts.append((sway_x, vy))
+                        if vy > 10 and vy % 12 == 0:
+                            leaf_dir = 1 if (vy // 12) % 2 == 0 else -1
+                            md.ellipse(
+                                [sway_x + leaf_dir * 2 - 4, vy - 2, sway_x + leaf_dir * 7 + 4, vy + 3],
+                                fill=pal["foliage_hi"],
+                                outline=pal["outline"],
+                            )
+                    if len(pts) >= 2:
+                        md.line(pts, fill=pal["foliage_mid"], width=2)
+                    end_x, end_y = pts[-1]
+                    # Glowing bioluminescent blossom / gothic rose / angler pearl at vine tip
+                    md.ellipse([end_x - 4, end_y - 4, end_x + 4, end_y + 4], fill=pal["accent_alt"], outline=pal["outline"])
+                    md.ellipse([end_x - 2, end_y - 2, end_x + 2, end_y + 2], fill=(255, 255, 255, 255))
+
+            # D. Rich Ground-Level Foreground Detailing (Coral Reefs, Crystal Clusters, Thorny Briars, Ferns)
+            base_cx = (gx + 105) % w
+            if name == "underwater":
+                # Branching Staghorn Coral & Sea Anemone cluster along bottom edge
+                for branch_ang, branch_len in ((-0.55, 38), (-0.15, 46), (0.3, 40), (0.65, 32)):
+                    bx2 = base_cx + int(math.sin(branch_ang) * branch_len)
+                    by2 = h - int(math.cos(branch_ang) * branch_len)
+                    md.line([(base_cx, h), (bx2, by2)], fill=pal["accent_alt"], width=5)
+                    md.line([(base_cx - 1, h), (bx2 - 1, by2)], fill=(255, 165, 225, 255), width=2)
+                    md.ellipse([bx2 - 4, by2 - 4, bx2 + 4, by2 + 4], fill=pal["accent"], outline=pal["outline"])
+            elif name in ("cavern", "ice"):
+                # Faceted glowing quartz / glacier crystal cluster rising from floor
+                for c_off, c_w, c_h in ((-14, 10, 34), (0, 12, 48), (13, 9, 28)):
+                    cx0 = base_cx + c_off
+                    md.polygon(
+                        [(cx0 - c_w // 2, h), (cx0 - c_w // 3, h - c_h + 8), (cx0, h - c_h), (cx0 + c_w // 3, h - c_h + 8), (cx0 + c_w // 2, h)],
+                        fill=pal["foliage_hi"],
+                        outline=pal["outline"],
+                    )
+                    md.polygon(
+                        [(cx0 - c_w // 3, h), (cx0 - 2, h - c_h + 8), (cx0, h - c_h), (cx0, h)],
+                        fill=pal["foliage_rim"],
+                    )
+            else:
+                # Layered bush / gothic rose briar / temple fern silhouette with glowing blossoms
+                for b_off, b_rad in ((-18, 16), (0, 22), (18, 16)):
+                    bx0 = base_cx + b_off
+                    md.ellipse([bx0 - b_rad, h - b_rad - 6, bx0 + b_rad, h + b_rad], fill=pal["foliage_dark"], outline=pal["outline"])
+                    md.chord([bx0 - b_rad + 3, h - b_rad - 4, bx0 + b_rad - 3, h + b_rad - 4], 180, 360, fill=pal["foliage_mid"])
+                    md.arc([bx0 - b_rad + 4, h - b_rad - 3, bx0 + b_rad - 4, h], 200, 340, fill=pal["foliage_hi"], width=2)
+                md.ellipse([base_cx - 4, h - 22, base_cx + 4, h - 14], fill=pal["accent"], outline=pal["outline"])
 
         mid_img.save(os.path.join(BG_DIR, f"parallax_{name}_mid.png"))
 
@@ -1566,17 +1994,35 @@ def build_all_assets(force=False):
     """
     ensure_directories()
     marker_file = os.path.join(TILES_DIR, "terrain_0.png")
-    if not force and os.path.exists(marker_file) and os.path.exists(os.path.join(SPRITES_DIR, "mantis_armored.png")):
+    new_marker_1 = os.path.join(TILES_DIR, "volcanic_0.png")
+    new_marker_2 = os.path.join(SPRITES_DIR, "npc_elder_0.png")
+    new_marker_3 = os.path.join(SPRITES_DIR, "shark_idle.png")
+    if (
+        not force and
+        os.path.exists(marker_file) and
+        os.path.exists(new_marker_1) and
+        os.path.exists(new_marker_2) and
+        os.path.exists(new_marker_3) and
+        os.path.exists(os.path.join(SPRITES_DIR, "mantis_armored.png"))
+    ):
         return
 
     print("[Asset Pipeline] Generating 16-bit auto-tiles, lush foliage, sprites & lighting maps...")
     generate_autotile_set("jungle")
     generate_autotile_set("sanctum")
     generate_autotile_set("ice")
+    generate_autotile_set("volcanic")
+    generate_autotile_set("underwater")
     generate_special_tiles()
     generate_environmental_props()
     generate_froggy_sprites()
     generate_enemy_and_boss_sprites()
+    generate_npc_sprites()
+    try:
+        import sprite_studio
+        sprite_studio.build_and_export_all_32bit_sprites()
+    except Exception:
+        pass
     generate_lighting_maps()
     generate_procedural_parallax_layers()
     process_ai_backgrounds()

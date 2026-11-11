@@ -624,6 +624,109 @@ def compose_title_theme(filepath: str):
     midi.save(filepath)
 
 
+def compose_volcanic_magma(filepath: str):
+    """
+    Composes an intense 16-bit Volcanic Magma Chasm theme at 136 BPM.
+    Features E Phrygian Dominant overdrive guitar riffs, slap bass ostinatos,
+    and tribal tom/snare rhythms evoking molten subterranean caverns.
+    """
+    bpm = 136.0
+    midi = MidiFile(tempo_bpm=bpm)
+    tpq = TICKS_PER_BEAT
+    bar_len = tpq * 4
+
+    tr_lead = midi.add_track("Molten Overdrive Lead")
+    tr_bass = midi.add_track("Volcanic Slap Bass")
+    tr_pad = midi.add_track("Magma Choir Pad")
+    tr_drums = midi.add_track("Tribal Forge Drums")
+
+    tr_lead.set_instrument(0, 29)    # Overdriven Guitar
+    tr_bass.set_instrument(1, 36)    # Slap Bass 1
+    tr_pad.set_instrument(2, 52)     # Choir Aahs
+    tr_drums.set_volume(9, 114)
+
+    # E Phrygian Dominant progression: E -> F -> G -> F
+    progression = [
+        ([52, 56, 59], 40),   # E Major / Phrygian
+        ([53, 57, 60], 41),   # F Major
+        ([55, 59, 62], 43),   # G Major
+        ([53, 57, 60], 41),   # F Major turnaround
+    ] * 2
+
+    for bar_idx, (chord, bass_root) in enumerate(progression):
+        b_start = bar_idx * bar_len
+        tr_pad.add_chord(2, chord, b_start, int(bar_len * 0.92), velocity=84)
+
+        # Driving 8th-note volcanic bass pulse
+        for s in range(8):
+            pitch = bass_root if s % 2 == 0 else bass_root + 12
+            tr_bass.add_note(1, pitch, b_start + int(s * (tpq / 2)), int(tpq * 0.38), velocity=106)
+
+        # Phrygian melodic lead motif
+        motif = [chord[0] + 12, chord[1] + 12, chord[2] + 12, chord[1] + 12, chord[0] + 13, chord[0] + 12]
+        for idx, note in enumerate(motif):
+            tr_lead.add_note(0, note, b_start + int(idx * (tpq * 0.66)), int(tpq * 0.5), velocity=102)
+
+        # Heavy tribal tom & double-kick groove
+        for beat in range(4):
+            t_b = b_start + beat * tpq
+            tr_drums.add_note(9, 36, t_b, int(tpq * 0.35), velocity=115)
+            tr_drums.add_note(9, 45 if beat % 2 == 0 else 47, t_b + int(tpq * 0.5), int(tpq * 0.3), velocity=100)
+            if beat in (1, 3):
+                tr_drums.add_note(9, 38, t_b, int(tpq * 0.35), velocity=112)
+
+    midi.save(filepath)
+
+
+def compose_sunken_grotto(filepath: str):
+    """
+    Composes a dreamy, crystalline 16-bit Sunken Submarine Grotto theme at 98 BPM.
+    Inspired by Donkey Kong Country's 'Aquatic Ambience' — featuring lush Rhodes
+    electric piano chords, shimmering vibraphone/celesta arpeggios, and deep fretless bass.
+    """
+    bpm = 98.0
+    midi = MidiFile(tempo_bpm=bpm)
+    tpq = TICKS_PER_BEAT
+    bar_len = tpq * 4
+
+    tr_epiano = midi.add_track("Submarine Electric Piano")
+    tr_vibes = midi.add_track("Bioluminescent Vibraphone Arpeggio")
+    tr_bass = midi.add_track("Abyssal Fretless Bass")
+    tr_drums = midi.add_track("Submerged Echo Percussion")
+
+    tr_epiano.set_instrument(0, 5)   # Electric Piano 2 (DX7 Rhodes)
+    tr_vibes.set_instrument(1, 11)   # Vibraphone
+    tr_bass.set_instrument(2, 35)    # Fretless Bass
+    tr_drums.set_volume(9, 82)
+
+    # D Dorian aquatic progression: Dm7 -> G/D -> Cmaj7 -> Am7
+    aqua_chords = [
+        ([50, 53, 57, 60], 38),  # Dm7
+        ([50, 55, 59, 62], 43),  # G/D
+        ([48, 52, 55, 59], 36),  # Cmaj7
+        ([45, 52, 55, 60], 33),  # Am7
+    ] * 2
+
+    for bar_idx, (chord, bass_root) in enumerate(aqua_chords):
+        b_start = bar_idx * bar_len
+        tr_epiano.add_chord(0, chord, b_start, int(bar_len * 0.95), velocity=82)
+        tr_bass.add_note(2, bass_root, b_start, int(tpq * 2.5), velocity=94)
+        tr_bass.add_note(2, bass_root + 7, b_start + int(tpq * 2.5), int(tpq * 1.4), velocity=86)
+
+        # Flowing 16th-note underwater arpeggio
+        for s in range(8):
+            note = chord[s % len(chord)] + 12
+            tr_vibes.add_note(1, note, b_start + int(s * (tpq / 2)), int(tpq * 0.45), velocity=88)
+
+        # Gentle submerged hi-hat & soft rim echo
+        for beat in range(4):
+            tr_drums.add_note(9, 42, b_start + beat * tpq, int(tpq * 0.2), velocity=64)
+        tr_drums.add_note(9, 36, b_start, int(tpq * 0.4), velocity=84)
+        tr_drums.add_note(9, 37, b_start + tpq * 2, int(tpq * 0.3), velocity=76)
+
+    midi.save(filepath)
+
+
 def build_all_midi_soundtrack():
     """Generates all Standard MIDI soundtrack files into assets/music/."""
     music_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "music")
@@ -637,8 +740,10 @@ def build_all_midi_soundtrack():
     compose_boss_falo_snowman(os.path.join(music_dir, "boss_snowman.mid"))
     compose_glacial_hot_springs(os.path.join(music_dir, "ice_hot_springs.mid"))
     compose_title_theme(os.path.join(music_dir, "title_theme.mid"))
+    compose_volcanic_magma(os.path.join(music_dir, "volcanic_magma.mid"))
+    compose_sunken_grotto(os.path.join(music_dir, "sunken_grotto.mid"))
 
-    print("[MidiComposer] All 7 Standard MIDI soundtrack files successfully composed and saved!")
+    print("[MidiComposer] All 9 Standard MIDI soundtrack files successfully composed and saved!")
 
 
 if __name__ == "__main__":
