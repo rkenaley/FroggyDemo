@@ -151,36 +151,46 @@ def test_arcade_boss_rush_and_split_timer(world, player, camera, audio):
     canvas = pygame.Surface((fe.INTERNAL_WIDTH, fe.INTERNAL_HEIGHT))
     font = pygame.font.SysFont("monospace", 10, bold=True)
 
-    rush = fe.BossRushManager()
-    rush.start_rush(world, player, camera, audio)
-    assert rush.active and not rush.completed
-    assert world.current_room.room_id == "boss_sanctum"
-    assert player.has_stomping_boots and player.has_red_boomerang
+    expected_rooms = ["boss_sanctum", "hound_sanctum", "toad_colosseum", "falo_arena", "shark_sanctum"]
+    orig_records = fe.BossRushManager.RECORDS_FILE
+    temp_records = "test_v6_boss_rush_records.json"
+    fe.BossRushManager.RECORDS_FILE = temp_records
+    if os.path.exists(temp_records):
+        os.remove(temp_records)
+    try:
+        rush = fe.BossRushManager()
+        rush.start_rush(world, player, camera, audio)
+        assert rush.active and not rush.completed
+        assert world.current_room.room_id == "boss_sanctum"
+        assert player.has_stomping_boots and player.has_red_boomerang
 
-    expected_rooms = ["boss_sanctum", "hound_sanctum", "toad_colosseum", "falo_arena"]
-    for idx, expected_r in enumerate(expected_rooms):
-        assert world.current_room.room_id == expected_r, f"Stage {idx+1} room mismatch: {world.current_room.room_id}"
-        for _ in range(30):
-            rush.update(world, player, camera, audio)
-        # Defeat current boss
-        boss = world.current_room.get_active_boss()
-        if boss:
-            boss.alive = False
-        world.current_room.boss_defeated = True
-        rush.update(world, player, camera, audio)
-        rush.draw_split_hud(canvas, font)
-
-        if idx < 3:
-            assert rush.stage_clear_Pending
-            for _ in range(80):
+        for idx, expected_r in enumerate(expected_rooms):
+            assert world.current_room.room_id == expected_r, f"Stage {idx+1} room mismatch: {world.current_room.room_id}"
+            for _ in range(30):
                 rush.update(world, player, camera, audio)
+            # Defeat current boss
+            boss = world.current_room.get_active_boss()
+            if boss:
+                boss.alive = False
+            world.current_room.boss_defeated = True
+            rush.update(world, player, camera, audio)
+            rush.draw_split_hud(canvas, font)
 
-    assert rush.completed, "Expected Boss Rush to mark completed after defeating all 4 bosses!"
-    assert len(rush.timer.splits) == 4, f"Expected 4 recorded boss splits, got {len(rush.timer.splits)}"
-    assert rush.best_total_frames is not None and rush.best_total_frames > 0
-    assert os.path.exists(fe.BossRushManager.RECORDS_FILE), "Expected boss_rush_records.json to be saved"
-    formatted = fe.SpeedrunTimer.format_frames(rush.timer.total_frames)
-    print(f"  + All 4 Boss Rush stages cleared! Final Split Time: {formatted} (Saved to {fe.BossRushManager.RECORDS_FILE}) PASS")
+            if idx < len(expected_rooms) - 1:
+                assert rush.stage_clear_Pending
+                for _ in range(115):
+                    rush.update(world, player, camera, audio)
+
+        assert rush.completed, "Expected Boss Rush to mark completed after defeating all 5 bosses!"
+        assert len(rush.timer.splits) == 5, f"Expected 5 recorded boss splits, got {len(rush.timer.splits)}"
+        assert rush.best_total_frames is not None and rush.best_total_frames > 0
+        assert os.path.exists(temp_records), "Expected temporary boss rush records file to be saved"
+        formatted = fe.SpeedrunTimer.format_frames(rush.timer.total_frames)
+        print(f"  + All 5 Boss Rush stages cleared! Final Split Time: {formatted} (Verified records save) PASS")
+    finally:
+        fe.BossRushManager.RECORDS_FILE = orig_records
+        if os.path.exists(temp_records):
+            os.remove(temp_records)
 
 
 def main():

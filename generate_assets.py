@@ -180,6 +180,28 @@ def generate_autotile_set(theme="jungle"):
         top_dark = (20, 118, 112, 255)    # Deep sea moss
         accent_glow = (165, 255, 245, 255)
         prefix = "underwater"
+    elif theme == "tree_ascent":
+        # Giant Ancient World Tree Bark & Sunlit Leafy Platforms (Level 2 Tree)
+        stone_dark = (68, 38, 22, 255)
+        stone_mid = (104, 62, 34, 255)
+        stone_hi = (146, 92, 48, 255)
+        mortar = (42, 22, 12, 255)
+        top_bright = (132, 245, 96, 255)   # Sunlit lush canopy leaves
+        top_mid = (58, 188, 72, 255)      # Leafy emerald foliage
+        top_dark = (32, 118, 48, 255)     # Deep mossy bough
+        accent_glow = (255, 238, 130, 255)
+        prefix = "tree_ascent"
+    elif theme == "sky_clouds":
+        # Mario-Style Skyfrog Cloudstone & Golden Sky Trim Platforms (Level 2 Sky)
+        stone_dark = (128, 158, 212, 255)
+        stone_mid = (182, 210, 245, 255)
+        stone_hi = (232, 245, 255, 255)
+        mortar = (78, 108, 168, 255)
+        top_bright = (255, 248, 155, 255)  # Radiant golden skyrim cloud crest
+        top_mid = (242, 250, 255, 255)    # Fluffy cirrus white
+        top_dark = (138, 198, 248, 255)   # Cerulean shadow edge
+        accent_glow = (255, 220, 95, 255)
+        prefix = "sky_clouds"
     else:
         # Sinister Emperor Mantis Sanctum theme (Obsidian, Crimson & Violet Runes)
         stone_dark = (36, 18, 34, 255)
@@ -1997,12 +2019,16 @@ def build_all_assets(force=False):
     new_marker_1 = os.path.join(TILES_DIR, "volcanic_0.png")
     new_marker_2 = os.path.join(SPRITES_DIR, "npc_elder_0.png")
     new_marker_3 = os.path.join(SPRITES_DIR, "shark_idle.png")
+    new_marker_4 = os.path.join(TILES_DIR, "tree_ascent_0.png")
+    new_marker_5 = os.path.join(TILES_DIR, "sky_clouds_0.png")
     if (
         not force and
         os.path.exists(marker_file) and
         os.path.exists(new_marker_1) and
         os.path.exists(new_marker_2) and
         os.path.exists(new_marker_3) and
+        os.path.exists(new_marker_4) and
+        os.path.exists(new_marker_5) and
         os.path.exists(os.path.join(SPRITES_DIR, "mantis_armored.png"))
     ):
         return
@@ -2013,6 +2039,8 @@ def build_all_assets(force=False):
     generate_autotile_set("ice")
     generate_autotile_set("volcanic")
     generate_autotile_set("underwater")
+    generate_autotile_set("tree_ascent")
+    generate_autotile_set("sky_clouds")
     generate_special_tiles()
     generate_environmental_props()
     generate_froggy_sprites()

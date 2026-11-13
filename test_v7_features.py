@@ -251,8 +251,8 @@ def run_tests():
     for pose in required_poses:
         assert pose in toad_frames, f"Missing toad pose: {pose}"
         surf = toad_frames[pose]
-        assert surf.get_size() == (80, 80), f"Expected 80x80 for toad {pose}, got {surf.get_size()}"
-    print(f"  + All 5 Giga Toad poses verified uniform 80x80 canvas: PASS")
+        assert surf.get_size() == (96, 96), f"Expected 96x96 for toad {pose}, got {surf.get_size()}"
+    print(f"  + All 5 Giga Toad poses verified uniform 96x96 canvas: PASS")
 
     # Check hitbox size
     toad_boss = fe.GigaToadBoss(100, 100, enemy_anims)

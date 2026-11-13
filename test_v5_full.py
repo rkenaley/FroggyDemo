@@ -111,15 +111,24 @@ def test_vertical_doors_and_blueprints():
     assert fa["doors"]["D"]["target_door"] == "U"
     assert fa["doors"]["D"]["spawn_offset_y"] > 0, "Floor door must have positive offset_y"
 
-    # Check falo_arena has bottom chute 'Z' leading to grapple_cavern 'Z'
+    # Check falo_arena has bottom chute 'Z' leading to falo_shrine 'Z',
+    # falo_shrine links J <-> volcanic_chasm J, and volcanic_chasm links Y <-> grapple_cavern Y
     falo_room = fe.WORLD_BLUEPRINTS["falo_arena"]
     assert "Z" in falo_room["doors"]
-    assert falo_room["doors"]["Z"]["target_room"] == "grapple_cavern"
+    assert falo_room["doors"]["Z"]["target_room"] == "falo_shrine"
 
-    # Check grapple_cavern has ceiling door 'Z' leading to falo_arena
+    fs = fe.WORLD_BLUEPRINTS["falo_shrine"]
+    assert "Z" in fs["doors"] and fs["doors"]["Z"]["target_room"] == "falo_arena"
+    assert "J" in fs["doors"] and fs["doors"]["J"]["target_room"] == "volcanic_chasm"
+
+    vc = fe.WORLD_BLUEPRINTS["volcanic_chasm"]
+    assert "J" in vc["doors"] and vc["doors"]["J"]["target_room"] == "falo_shrine"
+    assert "Y" in vc["doors"] and vc["doors"]["Y"]["target_room"] == "grapple_cavern"
+
+    # Check grapple_cavern has ceiling door 'Y' leading to volcanic_chasm
     gc = fe.WORLD_BLUEPRINTS["grapple_cavern"]
-    assert "Z" in gc["doors"]
-    assert gc["doors"]["Z"]["target_room"] == "falo_arena"
+    assert "Y" in gc["doors"]
+    assert gc["doors"]["Y"]["target_room"] == "volcanic_chasm"
 
     print("  -> Vertical Doors & bidirectional routing verified! PASS")
 
@@ -200,36 +209,48 @@ def test_falo_snowman_boss():
     room = fe.TileMapRoom("falo_arena", fe.WORLD_BLUEPRINTS["falo_arena"], assets, enemy_anims)
     boss = fe.FaloSnowmanBoss(300, 200, enemy_anims)
     assert boss.is_boss == True
-    assert boss.hp == 12
-    assert boss.max_hp == 12
+    assert boss.hp == 84
+    assert boss.max_hp == 84
+    assert boss.ice_shield_hp == 6
+    assert len(room.heat_vent_candidates) == 6
+    assert len(room.heat_vents) == 2
 
-    boss.awaken()
-    assert boss.awakened == True
-
-    # Test Stomp detection on top hat
-    player_rect = pygame.Rect(boss.rect.left + 5, boss.rect.top - 2, 14, 16)
-    assert boss.check_stomp(player_rect, player_vy=4.0) == True
-    boss.take_stomp_damage(room)
-    assert boss.hp == 10, f"Expected 10 HP after 2 stomp damage, got {boss.hp}"
-    assert boss.state == "DAZED"
-
-    # Test carrot boomerang detachment and projectile list
     player = fe.FroggyPlayer(150, 200, assets.build_froggy_animations())
     room.active_player_ref = player
-    boss.state = "THROW_CARROT"
-    boss.state_timer = 36
-    boss.carrot_attached = True
-    boss.update(room)
-    assert len(room.boss_projectiles) > 0, "Boss should throw projectile"
-    assert boss.carrot_attached == False, "Carrot should be detached during throw"
+    boss.awaken()
+    assert boss.awakened == True
+    boss.state = "SHIELD_VOLLEY"
+    boss.shield_throw_timer = 1
+
+    # Invulnerable while 6 snowflakes remain on shield
+    boss.hit_by_spore_boomerang(room, is_red=True)
+    assert boss.hp == 84 and boss.ice_shield_hp == 6
+
+    # Launches all 6 snowflakes one by one until VULNERABLE
+    for _ in range(260):
+        boss.update(room)
+        if boss.state == "VULNERABLE":
+            break
+    assert boss.ice_shield_hp == 0 and boss.state == "VULNERABLE"
+    flakes = [p for p in room.boss_projectiles if isinstance(p, fe.ShieldSnowflakeProjectile)]
+    assert len(flakes) == 6
+
+    # Striking while VULNERABLE deals damage AND always initiates COLD_BEAM_RECHARGE
+    boss.take_stomp_damage(room)
+    assert boss.hp == 72, f"Expected 72 HP after VULNERABLE stomp, got {boss.hp}"
+    assert boss.state == "COLD_BEAM_RECHARGE"
+    room.frost_wind.update(player=player, room=room, camera_y=0.0)
+    assert room.frost_wind.state in ("WARNING", "GALE")
 
     # Test death meltdown
     boss.hp = 1
+    boss.ice_shield_hp = 0
+    boss.state = "VULNERABLE"
     boss.hit_by_spore_boomerang(room, is_red=True)
     assert boss.alive == False
     assert boss.state == "DEFEATED"
     assert room.boss_defeated == True
-    print("  -> Falo the Evil Snowman top hat stomp, carrot boomerang & meltdown verified! PASS")
+    print("  -> Falo 84 HP, 6-Flake Shield Volley, Heat Vents & Cold Beam Recharge verified! PASS")
 
 def test_save_manager_and_checkpoints():
     print("Testing SaveManager Checkpoint Serialization & Disk Persistence...")

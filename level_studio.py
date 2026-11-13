@@ -87,13 +87,66 @@ COLOR_BUTTON_HOVER = (52, 64, 90)
 COLOR_BUTTON_ACTIVE = (65, 120, 90)
 
 # Palette categories for the toolbar
+STUDIO_THEMES = (
+    "canopy",
+    "temple",
+    "cavern",
+    "sanctum",
+    "hound_palace",
+    "ice",
+    "volcanic",
+    "underwater",
+    "tree_ascent",
+    "sky_clouds",
+)
+
+AUTOTILE_THEME_MAP = {
+    "canopy": "jungle",
+    "cavern": "jungle",
+    "temple": "sanctum",
+    "sanctum": "sanctum",
+    "hound_palace": "sanctum",
+    "ice": "ice",
+    "volcanic": "volcanic",
+    "underwater": "underwater",
+    "tree_ascent": "tree_ascent",
+    "sky_clouds": "sky_clouds",
+}
+
+STUDIO_THEME_BG_COLORS = {
+    "canopy": (16, 30, 44),
+    "temple": (18, 24, 44),
+    "cavern": (14, 30, 42),
+    "sanctum": (28, 12, 32),
+    "hound_palace": (26, 16, 32),
+    "ice": (18, 32, 54),
+    "volcanic": (42, 16, 14),
+    "underwater": (10, 26, 48),
+    "tree_ascent": (16, 42, 26),
+    "sky_clouds": (92, 168, 232),
+}
+
+EXTRA_TILE_METADATA = {
+    str(d): {"name": f"Door Portal [{d}]", "category": "door", "color": (90, 235, 255)}
+    for d in range(1, 10)
+}
+
+
+def get_tile_meta(ch):
+    """Returns tile metadata from world_data.TILE_LEGEND or Studio portal fallbacks."""
+    return TILE_LEGEND.get(ch) or EXTRA_TILE_METADATA.get(ch)
+
+
 BRUSH_PALETTES = [
     {
         "category": "Terrain",
         "items": [
             ('#', "Solid Stone"),
             ('.', "Air (Erase)"),
+            ('r', "Cracked Burrow Rock"),
             ('~', "Swamp Water"),
+            ('<', "Current Left"),
+            ('>', "Current Right"),
             ('v', "Molten Magma"),
             ('c', "Waterfall Mist"),
             ('o', "Bubble Vent"),
@@ -113,6 +166,8 @@ BRUSH_PALETTES = [
         "items": [
             ('J', "Stomping Boots"),
             ('R', "Red Boomerang"),
+            ('L', "Muhlaser Relic"),
+            ('V', "Vitality Heart"),
         ],
     },
     {
@@ -124,6 +179,9 @@ BRUSH_PALETTES = [
             ('W', "Shadow Spider"),
             ('b', "Stink Bug"),
             ('w', "Ice Wolf Spider"),
+            ('p', "Razor Piranha"),
+            ('a', "Abyssal Angler"),
+            ('j', "Volt Jelly"),
         ],
     },
     {
@@ -133,6 +191,7 @@ BRUSH_PALETTES = [
             ('H', "The Dread Hound"),
             ('Q', "Giga Toad"),
             ('O', "Falo Snowman"),
+            ('s', "Demon Shark"),
         ],
     },
     {
@@ -144,8 +203,14 @@ BRUSH_PALETTES = [
             ('B', "Door B"),
             ('C', "Door C"),
             ('D', "Door D"),
+            ('I', "Door I"),
+            ('K', "Door K"),
+            ('P', "Door P"),
             ('U', "Door U (Up)"),
+            ('Y', "Door Y"),
             ('Z', "Door Z (Down)"),
+            ('1', "Door Portal [1]"),
+            ('2', "Door Portal [2]"),
         ],
     },
 ]
@@ -236,6 +301,8 @@ def cmd_info_zone(zone_id):
 def cmd_new_zone(zone_id, title=None, theme="canopy", cols=60, rows=23):
     """Creates a new zone from scratch."""
     zone_data = create_blank_zone(zone_id, title=title, theme=theme, cols=cols, rows=rows)
+    if theme in STUDIO_THEME_BG_COLORS:
+        zone_data["bg_color"] = STUDIO_THEME_BG_COLORS[theme]
     fpath = save_zone(zone_id, zone_data, save_to_disk=True)
     print("\n" + "=" * 70)
     print(f" ✨ SUCCESS! Created brand-new zone: '{zone_id}'")
@@ -274,21 +341,32 @@ def cmd_reset_zone(zone_id):
         sys.exit(1)
 
 
-def cmd_play_zone(zone_id):
+def cmd_play_zone(zone_id, owns_display=True):
     """Launches the Froggy engine directly warped into the selected zone."""
     try:
         import froggy_engine as fe
     except ImportError as e:
         print(f"[ERROR] Could not import froggy_engine: {e}")
-        sys.exit(1)
+        if owns_display:
+            sys.exit(1)
+        return
+
+    import world_data as wd
+    reloaded = dict(wd.reload_blueprints())
+    if fe.WORLD_BLUEPRINTS is not wd.WORLD_BLUEPRINTS:
+        fe.WORLD_BLUEPRINTS.clear()
+        fe.WORLD_BLUEPRINTS.update(reloaded)
 
     print(f"\n[Level Studio] Launching playtest directly in zone '{zone_id}'...")
     if zone_id not in fe.WORLD_BLUEPRINTS:
         print(f"[ERROR] Zone '{zone_id}' does not exist in WORLD_BLUEPRINTS.")
-        sys.exit(1)
+        if owns_display:
+            sys.exit(1)
+        return
 
     # Launch engine directly into that room
-    pygame.init()
+    if not pygame.get_init():
+        pygame.init()
     window = pygame.display.set_mode((fe.WINDOW_WIDTH, fe.WINDOW_HEIGHT))
     pygame.display.set_caption(f"Froggy Playtest: {zone_id}")
 
@@ -305,9 +383,16 @@ def cmd_play_zone(zone_id):
     world.warp_directly_to_room(zone_id, player, camera, audio)
 
     hud_font = pygame.font.SysFont("monospace", 10, bold=True)
+    title_font = pygame.font.SysFont("arial", 22, bold=True)
+    menu_font = pygame.font.SysFont("monospace", 10, bold=True)
+    consumable_ids = ("heart_nectar", "chill_draught", "warmth_broth", "oxygen_reed")
+
     clock = pygame.time.Clock()
     running = True
     pulse_timer = 0
+    inventory_open = False
+    inventory_selected_idx = 0
+    game_over = False
 
     while running:
         clock.tick(fe.TARGET_FPS)
@@ -317,13 +402,67 @@ def cmd_play_zone(zone_id):
             if event.type == pygame.QUIT:
                 running = False
             controller.handle_hotplug_event(event)
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_TAB, pygame.K_i) and not game_over and world.active_shop is None:
+                    inventory_open = not inventory_open
+                    audio.play_sfx("select")
+                elif event.key == pygame.K_ESCAPE:
+                    if inventory_open:
+                        inventory_open = False
+                        audio.play_sfx("select")
+                    elif world.active_shop is not None:
+                        world.active_shop.is_open = False
+                        world.active_shop = None
+                        audio.play_sfx("select")
+                    else:
+                        running = False
+                elif game_over and event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_r):
+                    # Respawn safely inside the playtested zone
+                    player.hp = player.max_hp
+                    player.invuln_timer = 60
+                    player.vx = 0.0
+                    player.vy = 0.0
+                    player.is_swinging = False
+                    player.tongue_state = "IDLE"
+                    world.warp_directly_to_room(world.current_room.room_id, player, camera, audio)
+                    game_over = False
 
         controller.update()
-        world.current_room.update_entities(player, audio, pulse_timer)
-        player.update(controller, world.current_room, world, audio)
-        camera.update(player)
+
+        if world.active_shop is not None:
+            is_open = world.active_shop.handle_input(controller, player, world.current_room, audio)
+            if not is_open:
+                world.active_shop = None
+        elif inventory_open:
+            if controller.just_pressed["UP"]:
+                inventory_selected_idx = (inventory_selected_idx - 1) % len(consumable_ids)
+                audio.play_sfx("cursor")
+            elif controller.just_pressed["DOWN"]:
+                inventory_selected_idx = (inventory_selected_idx + 1) % len(consumable_ids)
+                audio.play_sfx("cursor")
+            elif controller.just_pressed["SELECT"]:
+                inventory_open = False
+                audio.play_sfx("select")
+            elif controller.just_pressed["L"]:
+                player.equipped_secondary = consumable_ids[inventory_selected_idx]
+                audio.play_sfx("select")
+            elif controller.just_pressed["A"] or controller.jump_just_pressed or controller.just_pressed["Y"]:
+                sel_cid = consumable_ids[inventory_selected_idx]
+                player.use_consumable(sel_cid, room=world.current_room, audio=audio)
+        elif world.is_transitioning:
+            world.update_transition(player, camera, audio)
+        elif not game_over:
+            if controller.just_pressed["SELECT"]:
+                inventory_open = True
+                audio.play_sfx("select")
+            elif controller.just_pressed["L"]:
+                player.use_secondary_item(world.current_room, audio)
+
+            world.current_room.update_entities(player, audio, pulse_timer)
+            player.update(controller, world.current_room, world, audio)
+            camera.update(player)
+            if player.hp <= 0:
+                game_over = True
 
         # Draw
         snes_canvas.fill(world.current_room.bg_color)
@@ -331,11 +470,29 @@ def cmd_play_zone(zone_id):
         player.draw(snes_canvas, camera.render_x, camera.render_y, assets)
         fe.draw_hud_and_minimap(snes_canvas, hud_font, player, world, camera, (0, 0), controller, False, pulse_timer)
 
+        if world.active_shop is not None:
+            world.active_shop.draw(snes_canvas, title_font, menu_font, player, assets)
+        elif inventory_open:
+            fe.draw_inventory_screen(snes_canvas, title_font, menu_font, player, assets, inventory_selected_idx, pulse_timer)
+        elif game_over:
+            fe.draw_game_over_screen(snes_canvas, title_font, menu_font, pulse_timer, has_save=False, is_boss_rush=False)
+            retry_lbl = menu_font.render("[R / SPACE] Respawn Zone   [ESC] Return to Studio", True, (255, 235, 130))
+            snes_canvas.blit(retry_lbl, ((fe.INTERNAL_WIDTH - retry_lbl.get_width()) // 2, fe.INTERNAL_HEIGHT - 28))
+
+        world.draw_fade_overlay(snes_canvas)
+
         scaled = pygame.transform.scale(snes_canvas, (fe.WINDOW_WIDTH, fe.WINDOW_HEIGHT))
         window.blit(scaled, (0, 0))
         pygame.display.flip()
 
-    pygame.quit()
+    try:
+        if pygame.mixer.get_init():
+            pygame.mixer.music.stop()
+    except Exception:
+        pass
+
+    if owns_display:
+        pygame.quit()
     print("[Level Studio] Playtest finished cleanly.\n")
 
 
@@ -362,11 +519,7 @@ class LevelStudioGUI:
 
         # Load game assets for high-fidelity tile rendering
         self.assets = None
-        try:
-            import froggy_engine as fe
-            self.assets = fe.AssetManager()
-        except Exception as e:
-            print(f"[Level Studio] Notice: Using procedural color fallback for tiles ({e})")
+        self._load_assets()
 
         # Active Zone state
         self.zone_id = initial_zone_id if initial_zone_id in WORLD_BLUEPRINTS else "level_1"
@@ -412,6 +565,7 @@ class LevelStudioGUI:
         # Zone Selector Dropdown State
         self.show_zone_picker = False
         self.zone_picker_scroll = 0
+        self.palette_scroll = 0
 
         # Help Overlay
         self.show_help = False
@@ -422,6 +576,123 @@ class LevelStudioGUI:
 
         # Live Autotile Preview Surface Cache
         self._rebuild_autotile_cache()
+
+    def _load_assets(self):
+        """Loads froggy_engine AssetManager safely for autotile and background previews."""
+        self.assets = None
+        try:
+            import froggy_engine as fe
+            self.assets = fe.AssetManager()
+        except Exception as e:
+            print(f"[Level Studio] Notice: Using procedural color fallback for tiles ({e})")
+
+    def _get_autotile_theme(self, theme):
+        """Maps any of the 8 zone themes onto an AssetManager autotile set."""
+        return AUTOTILE_THEME_MAP.get(theme, "jungle")
+
+    def _launch_playtest(self):
+        """Saves current zone, launches playtest without tearing down display, and restores studio."""
+        self.save_current_zone()
+        cmd_play_zone(self.zone_id, owns_display=False)
+        self.window = pygame.display.set_mode((self.screen_w, self.screen_h), pygame.RESIZABLE)
+        pygame.display.set_caption(f"Froggy Level Studio - [{self.zone_id}]")
+        self.canvas_rect = pygame.Rect(
+            self.palette_width,
+            self.top_bar_height,
+            self.screen_w - self.palette_width,
+            self.screen_h - self.top_bar_height - self.status_bar_height,
+        )
+        pygame.event.clear()
+        self.status_message = f"Playtest finished. Resumed editing '{self.zone_id}'."
+        self.status_timer = 150
+
+    def _get_palette_bounds(self):
+        """Returns the screen-space bounding rectangle of the left brush palette."""
+        return pygame.Rect(
+            0,
+            self.top_bar_height,
+            self.palette_width,
+            max(1, self.screen_h - self.top_bar_height - self.status_bar_height),
+        )
+
+    def _get_palette_layout(self):
+        """Single source of truth for left palette geometry and scroll clamping."""
+        palette_rect = self._get_palette_bounds()
+        top_pad = 8
+        header_step = 20
+        item_h = 22
+        item_step = 24
+        cat_gap = 6
+        bottom_pad = 8
+
+        raw_y = top_pad
+        raw_headers = []
+        raw_items = []
+        for pcat in BRUSH_PALETTES:
+            raw_headers.append((pcat["category"], raw_y))
+            raw_y += header_step
+            for ch, name in pcat["items"]:
+                raw_items.append((ch, name, raw_y))
+                raw_y += item_step
+            raw_y += cat_gap
+
+        total_h = raw_y + bottom_pad
+        max_scroll = max(0, total_h - palette_rect.height)
+        self.palette_scroll = max(0, min(max_scroll, self.palette_scroll))
+
+        item_w = self.palette_width - (20 if max_scroll > 0 else 16)
+        headers = [
+            (cat_name, palette_rect.top + hy - self.palette_scroll)
+            for cat_name, hy in raw_headers
+        ]
+        items = [
+            (ch, name, pygame.Rect(8, palette_rect.top + iy - self.palette_scroll, item_w, item_h))
+            for ch, name, iy in raw_items
+        ]
+        return palette_rect, headers, items, total_h, max_scroll
+
+    def _palette_item_rects(self):
+        """Returns [(brush_char, label, pygame.Rect)] matching rendered & clickable boxes 1:1."""
+        _, _, items, _, _ = self._get_palette_layout()
+        return items
+
+    def _scroll_palette(self, delta_px):
+        """Scrolls the left brush palette vertically and clamps to valid bounds."""
+        self.palette_scroll += delta_px
+        self._get_palette_layout()
+
+    def _get_zone_picker_layout(self):
+        """Single source of truth for zone picker modal geometry and scroll clamping."""
+        zone_ids = list_zone_ids()
+        modal_w = 420
+        modal_h = min(520, max(180, self.screen_h - 100))
+        modal_rect = pygame.Rect(10, self.top_bar_height + 4, modal_w, modal_h)
+        list_rect = pygame.Rect(
+            modal_rect.left + 6,
+            modal_rect.top + 38,
+            modal_w - 12,
+            max(1, modal_h - 46),
+        )
+        row_h = 28
+        total_h = len(zone_ids) * row_h
+        max_scroll = max(0, total_h - list_rect.height)
+        self.zone_picker_scroll = max(0, min(max_scroll, self.zone_picker_scroll))
+
+        row_w = list_rect.width - (10 if max_scroll > 0 else 0)
+        rows = [
+            (
+                idx,
+                zid,
+                pygame.Rect(list_rect.left, list_rect.top + idx * row_h - self.zone_picker_scroll, row_w, row_h - 2),
+            )
+            for idx, zid in enumerate(zone_ids)
+        ]
+        return modal_rect, list_rect, rows, max_scroll, row_h
+
+    def _scroll_zone_picker(self, delta_px):
+        """Scrolls the zone picker dropdown vertically and clamps to valid bounds."""
+        self.zone_picker_scroll += delta_px
+        self._get_zone_picker_layout()
 
     def _push_undo(self):
         """Saves current grid state into undo history stack."""
@@ -568,10 +839,26 @@ class LevelStudioGUI:
                         self.status_timer = 180
                     elif event.key == pygame.K_F5:
                         # Instant Playtest
-                        self.save_current_zone()
-                        cmd_play_zone(self.zone_id)
-                    elif event.key in (pygame.K_h, pygame.K_F1):
+                        self._launch_playtest()
+                    elif event.key in (pygame.K_F1, pygame.K_SLASH, getattr(pygame, "K_QUESTION", pygame.K_SLASH)):
                         self.show_help = not self.show_help
+                    elif self.show_zone_picker and event.key in (
+                        pygame.K_UP, pygame.K_DOWN, pygame.K_PAGEUP, pygame.K_PAGEDOWN, pygame.K_HOME, pygame.K_END
+                    ):
+                        _, list_rect, _, max_scroll, row_h = self._get_zone_picker_layout()
+                        page_step = max(row_h, list_rect.height - row_h)
+                        if event.key == pygame.K_UP:
+                            self._scroll_zone_picker(-row_h)
+                        elif event.key == pygame.K_DOWN:
+                            self._scroll_zone_picker(row_h)
+                        elif event.key == pygame.K_PAGEUP:
+                            self._scroll_zone_picker(-page_step)
+                        elif event.key == pygame.K_PAGEDOWN:
+                            self._scroll_zone_picker(page_step)
+                        elif event.key == pygame.K_HOME:
+                            self.zone_picker_scroll = 0
+                        elif event.key == pygame.K_END:
+                            self.zone_picker_scroll = max_scroll
                     elif event.key == pygame.K_ESCAPE:
                         if self.show_zone_picker:
                             self.show_zone_picker = False
@@ -585,21 +872,34 @@ class LevelStudioGUI:
                     elif event.key == pygame.K_e and not ctrl: self.active_brush = 'E'
                     elif event.key == pygame.K_f: self.active_brush = 'F'
                     elif event.key == pygame.K_m: self.active_brush = 'M'
-                    elif event.key == pygame.K_h and not ctrl: self.active_brush = 'H'
+                    elif event.key == pygame.K_h and not ctrl:
+                        self.active_brush = 'H'
+                        self.status_message = "Selected Brush: [H] The Dread Hound"
+                        self.status_timer = 120
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
 
+                    # Wheel scrolling across zone picker, brush palette, or canvas zoom
+                    if event.button in (4, 5):
+                        step = -32 if event.button == 4 else 32
+                        if self.show_zone_picker:
+                            self._scroll_zone_picker(step)
+                        elif self._get_palette_bounds().collidepoint(mx, my):
+                            self._scroll_palette(step)
+                        elif self.canvas_rect.collidepoint(mx, my):
+                            self._zoom_at(mx, my, 1.2 if event.button == 4 else 1.0 / 1.2)
+
                     # 1. Top bar button clicks
-                    if my < self.top_bar_height:
+                    elif my < self.top_bar_height and event.button == 1:
                         self._handle_top_bar_click(mx, my)
 
                     # 2. Zone Picker clicks
-                    elif self.show_zone_picker:
+                    elif self.show_zone_picker and event.button == 1:
                         self._handle_zone_picker_click(mx, my)
 
                     # 3. Palette clicks
-                    elif mx < self.palette_width:
+                    elif self._get_palette_bounds().collidepoint(mx, my) and event.button == 1:
                         self._handle_palette_click(mx, my)
 
                     # 4. Canvas interaction
@@ -620,10 +920,6 @@ class LevelStudioGUI:
                             self.is_panning = True
                             self.pan_start_mouse = (mx, my)
                             self.pan_start_cam = (self.cam_x, self.cam_y)
-                        elif event.button == 4:  # Scroll Up: Zoom In
-                            self._zoom_at(mx, my, 1.2)
-                        elif event.button == 5:  # Scroll Down: Zoom Out
-                            self._zoom_at(mx, my, 1.0 / 1.2)
 
                 elif event.type == pygame.MOUSEBUTTONUP:
                     if event.button in (1, 3):
@@ -696,8 +992,7 @@ class LevelStudioGUI:
             self.save_current_zone()
         # [PLAY] button
         elif 210 <= mx <= 300:
-            self.save_current_zone()
-            cmd_play_zone(self.zone_id)
+            self._launch_playtest()
         # [UNDO] button
         elif 310 <= mx <= 370:
             self.undo()
@@ -719,32 +1014,28 @@ class LevelStudioGUI:
             self.show_help = not self.show_help
 
     def _handle_zone_picker_click(self, mx, my):
-        """Handles selecting a zone from the dropdown."""
-        picker_rect = pygame.Rect(10, self.top_bar_height + 4, 380, min(500, self.screen_h - 100))
-        if picker_rect.collidepoint(mx, my):
-            row_h = 28
-            idx = (my - (picker_rect.top + 36)) // row_h
-            zone_ids = list_zone_ids()
-            if 0 <= idx < len(zone_ids):
-                selected = zone_ids[idx]
-                self.load_zone(selected)
-        else:
+        """Handles selecting a zone from the scrolled dropdown."""
+        modal_rect, list_rect, rows, _, _ = self._get_zone_picker_layout()
+        if not modal_rect.collidepoint(mx, my):
             self.show_zone_picker = False
+            return
+        if list_rect.collidepoint(mx, my):
+            for _, zid, row_rect in rows:
+                if row_rect.collidepoint(mx, my):
+                    self.load_zone(zid)
+                    return
 
     def _handle_palette_click(self, mx, my):
-        """Handles clicking a brush icon on the left sidebar."""
-        y_cursor = self.top_bar_height + 10
-        for pcat in BRUSH_PALETTES:
-            y_cursor += 24  # header
-            for ch, name in pcat["items"]:
-                item_rect = pygame.Rect(8, y_cursor, self.palette_width - 16, 24)
-                if item_rect.collidepoint(mx, my):
-                    self.active_brush = ch
-                    self.status_message = f"Selected Brush: [{ch}] {name}"
-                    self.status_timer = 120
-                    return
-                y_cursor += 26
-            y_cursor += 8
+        """Handles clicking a brush icon on the left sidebar using shared layout geometry."""
+        palette_rect, _, items, _, _ = self._get_palette_layout()
+        if not palette_rect.collidepoint(mx, my):
+            return
+        for ch, name, item_rect in items:
+            if item_rect.collidepoint(mx, my):
+                self.active_brush = ch
+                self.status_message = f"Selected Brush: [{ch}] {name}"
+                self.status_timer = 120
+                return
 
     # =========================================================================
     # DRAWING ROUTINES
@@ -776,11 +1067,17 @@ class LevelStudioGUI:
         prev_clip = self.window.get_clip()
         self.window.set_clip(self.canvas_rect)
 
-        # Fill background with room's atmospheric theme color
-        bg_col = self.zone_data.get("bg_color", (16, 28, 42))
-        pygame.draw.rect(self.window, bg_col, self.canvas_rect)
-
+        # Fill background with room's atmospheric theme color + subtle biome backdrop
         theme = self.zone_data.get("theme", "canopy")
+        bg_col = self.zone_data.get("bg_color") or STUDIO_THEME_BG_COLORS.get(theme, (16, 28, 42))
+        pygame.draw.rect(self.window, bg_col, self.canvas_rect)
+        if self.assets and hasattr(self.assets, "backgrounds"):
+            bg_tex = self.assets.backgrounds.get(theme) or self.assets.backgrounds.get("canopy")
+            if bg_tex:
+                scaled_bg = pygame.transform.scale(bg_tex, (self.canvas_rect.width, self.canvas_rect.height))
+                scaled_bg.set_alpha(95)
+                self.window.blit(scaled_bg, self.canvas_rect.topleft)
+
         tile_px = int(TILE_SIZE * self.zoom)
 
         # Calculate visible grid bounds
@@ -811,8 +1108,9 @@ class LevelStudioGUI:
                 if ch == '#':
                     # Solid Block with 4-bit Autotile Texture if assets loaded
                     mask = self.autotile_masks[r][c]
-                    if self.assets and theme in self.assets.autotiles:
-                        raw_tex = self.assets.autotiles[theme].get(mask)
+                    auto_theme = self._get_autotile_theme(theme)
+                    if self.assets and auto_theme in self.assets.autotiles:
+                        raw_tex = self.assets.autotiles[auto_theme].get(mask)
                         if raw_tex:
                             scaled_tex = pygame.transform.scale(raw_tex, (tile_px, tile_px))
                             self.window.blit(scaled_tex, (sx, sy))
@@ -829,7 +1127,7 @@ class LevelStudioGUI:
 
                 elif ch != '.':
                     # Draw Object Symbol & Color Box
-                    info = TILE_LEGEND.get(ch, {"name": ch, "color": (180, 180, 180)})
+                    info = get_tile_meta(ch) or {"name": ch, "color": (180, 180, 180)}
                     base_color = info.get("color", (180, 180, 180))
                     pygame.draw.rect(self.window, base_color, cell_rect)
                     pygame.draw.rect(self.window, (255, 255, 255), cell_rect, 1)
@@ -888,55 +1186,64 @@ class LevelStudioGUI:
         self.window.blit(title_surf, (645, 15))
 
         # [ HELP ] button on far right
-        self._draw_btn(self.screen_w - 90, btn_y, 80, btn_h, "HELP (H)", COLOR_BUTTON_BG)
+        self._draw_btn(self.screen_w - 90, btn_y, 80, btn_h, "HELP (?)", COLOR_BUTTON_BG)
 
     def _draw_palette(self):
-        """Renders the left brush selection sidebar."""
-        palette_rect = pygame.Rect(0, self.top_bar_height, self.palette_width, self.screen_h - self.top_bar_height - self.status_bar_height)
+        """Renders the left brush selection sidebar using shared scrollable geometry."""
+        palette_rect, headers, items, total_h, max_scroll = self._get_palette_layout()
         pygame.draw.rect(self.window, COLOR_PANEL_BG, palette_rect)
         pygame.draw.line(self.window, COLOR_PANEL_BORDER, (self.palette_width - 1, self.top_bar_height), (self.palette_width - 1, self.screen_h), 1)
 
-        y_cursor = self.top_bar_height + 8
+        prev_clip = self.window.get_clip()
+        self.window.set_clip(palette_rect)
         mx, my = pygame.mouse.get_pos()
 
-        for pcat in BRUSH_PALETTES:
-            # Category Header
-            cat_surf = self.font_bold.render(f"▪ {pcat['category'].upper()}", True, (255, 205, 80))
-            self.window.blit(cat_surf, (12, y_cursor))
-            y_cursor += 20
+        for cat_name, hy in headers:
+            if hy + 20 < palette_rect.top or hy > palette_rect.bottom:
+                continue
+            cat_surf = self.font_bold.render(f"▪ {cat_name.upper()}", True, (255, 205, 80))
+            self.window.blit(cat_surf, (12, hy))
 
-            for ch, name in pcat["items"]:
-                item_rect = pygame.Rect(8, y_cursor, self.palette_width - 16, 22)
-                is_selected = (self.active_brush == ch)
-                is_hovered = item_rect.collidepoint(mx, my)
+        for ch, name, item_rect in items:
+            if item_rect.bottom < palette_rect.top or item_rect.top > palette_rect.bottom:
+                continue
+            is_selected = (self.active_brush == ch)
+            is_hovered = palette_rect.collidepoint(mx, my) and item_rect.collidepoint(mx, my)
 
-                # Background fill
-                if is_selected:
-                    bg_col = (45, 95, 65)
-                elif is_hovered:
-                    bg_col = COLOR_BUTTON_HOVER
-                else:
-                    bg_col = (30, 36, 50)
-                pygame.draw.rect(self.window, bg_col, item_rect, border_radius=3)
-                if is_selected:
-                    pygame.draw.rect(self.window, COLOR_ACCENT, item_rect, 1, border_radius=3)
+            # Background fill
+            if is_selected:
+                bg_col = (45, 95, 65)
+            elif is_hovered:
+                bg_col = COLOR_BUTTON_HOVER
+            else:
+                bg_col = (30, 36, 50)
+            pygame.draw.rect(self.window, bg_col, item_rect, border_radius=3)
+            if is_selected:
+                pygame.draw.rect(self.window, COLOR_ACCENT, item_rect, 1, border_radius=3)
 
-                # Character square preview
-                info = TILE_LEGEND.get(ch, {"color": (120, 120, 120)})
-                sq_rect = pygame.Rect(12, y_cursor + 3, 16, 16)
-                pygame.draw.rect(self.window, info.get("color", (120, 120, 120)), sq_rect)
-                pygame.draw.rect(self.window, (255, 255, 255), sq_rect, 1)
+            # Character square preview
+            info = get_tile_meta(ch) or {"color": (120, 120, 120)}
+            sq_rect = pygame.Rect(item_rect.left + 4, item_rect.top + 3, 16, 16)
+            pygame.draw.rect(self.window, info.get("color", (120, 120, 120)), sq_rect)
+            pygame.draw.rect(self.window, (255, 255, 255), sq_rect, 1)
 
-                ch_lbl = self.font_bold.render(ch, True, (0, 0, 0))
-                self.window.blit(ch_lbl, (sq_rect.centerx - ch_lbl.get_width() // 2, sq_rect.centery - ch_lbl.get_height() // 2))
+            ch_lbl = self.font_bold.render(ch, True, (0, 0, 0))
+            self.window.blit(ch_lbl, (sq_rect.centerx - ch_lbl.get_width() // 2, sq_rect.centery - ch_lbl.get_height() // 2))
 
-                # Name label
-                text_col = COLOR_TEXT_WHITE if (is_selected or is_hovered) else COLOR_TEXT_DIM
-                lbl = self.font_small.render(name[:18], True, text_col)
-                self.window.blit(lbl, (34, y_cursor + 4))
+            # Name label
+            text_col = COLOR_TEXT_WHITE if (is_selected or is_hovered) else COLOR_TEXT_DIM
+            lbl = self.font_small.render(name[:18], True, text_col)
+            self.window.blit(lbl, (item_rect.left + 26, item_rect.top + 4))
 
-                y_cursor += 24
-            y_cursor += 6
+        if max_scroll > 0 and total_h > 0:
+            track_rect = pygame.Rect(palette_rect.right - 7, palette_rect.top + 4, 4, palette_rect.height - 8)
+            pygame.draw.rect(self.window, (32, 38, 52), track_rect, border_radius=2)
+            thumb_h = max(24, int(track_rect.height * (palette_rect.height / total_h)))
+            thumb_range = max(1, track_rect.height - thumb_h)
+            thumb_y = track_rect.top + int((self.palette_scroll / max_scroll) * thumb_range)
+            pygame.draw.rect(self.window, COLOR_ACCENT, (track_rect.left, thumb_y, track_rect.width, thumb_h), border_radius=2)
+
+        self.window.set_clip(prev_clip)
 
     def _draw_status_bar(self):
         """Renders the bottom status bar with telemetry."""
@@ -952,14 +1259,14 @@ class LevelStudioGUI:
             hc, hr = self.world_to_grid(wx, wy)
             if 0 <= hr < self.rows and 0 <= hc < self.cols:
                 char_at = self.grid[hr][hc]
-                tile_info = TILE_LEGEND.get(char_at, {}).get("name", "Unknown")
+                tile_info = (get_tile_meta(char_at) or {}).get("name", "Unknown")
                 hover_info = f"Grid: ({hc:02d}, {hr:02d}) | World: ({int(wx):04d}px, {int(wy):04d}px) | Tile: [{char_at}] {tile_info}"
 
         hover_surf = self.font_small.render(hover_info, True, COLOR_TEXT_WHITE)
         self.window.blit(hover_surf, (self.palette_width + 12, bar_rect.top + 6))
 
         # Flash message or shortcuts
-        msg = self.status_message if self.status_timer > 0 else f"Active Brush: [{self.active_brush}] | Zoom: {self.zoom:.1f}x | [Ctrl+S] Save | [F5] Play | [H] Help"
+        msg = self.status_message if self.status_timer > 0 else f"Active Brush: [{self.active_brush}] | Zoom: {self.zoom:.1f}x | [Ctrl+S] Save | [F5] Play | [F1/?] Help"
         msg_col = COLOR_ACCENT if self.status_timer > 0 else COLOR_TEXT_DIM
         msg_surf = self.font_small.render(msg, True, msg_col)
         self.window.blit(msg_surf, (12, bar_rect.top + 6))
@@ -975,24 +1282,24 @@ class LevelStudioGUI:
         self.window.blit(lbl, (rect.centerx - lbl.get_width() // 2, rect.centery - lbl.get_height() // 2))
 
     def _draw_zone_picker(self):
-        """Renders the dropdown zone picker modal."""
-        zone_ids = list_zone_ids()
-        modal_w = 420
-        modal_h = min(520, self.screen_h - 100)
-        modal_rect = pygame.Rect(10, self.top_bar_height + 4, modal_w, modal_h)
+        """Renders the scrollable dropdown zone picker modal cleanly clipped to box bounds."""
+        modal_rect, list_rect, rows, max_scroll, row_h = self._get_zone_picker_layout()
         pygame.draw.rect(self.window, (22, 28, 40), modal_rect, border_radius=6)
         pygame.draw.rect(self.window, COLOR_ACCENT, modal_rect, 2, border_radius=6)
 
-        hdr_surf = self.font_hud.render("SELECT METROIDVANIA ZONE TO LOAD:", True, COLOR_ACCENT)
+        hdr_text = f"SELECT ZONE ({len(rows)} TOTAL) - SCROLL / PGUP / PGDN"
+        hdr_surf = self.font_hud.render(hdr_text, True, COLOR_ACCENT)
         self.window.blit(hdr_surf, (modal_rect.left + 14, modal_rect.top + 10))
         pygame.draw.line(self.window, COLOR_PANEL_BORDER, (modal_rect.left, modal_rect.top + 32), (modal_rect.right, modal_rect.top + 32))
 
+        prev_clip = self.window.get_clip()
+        self.window.set_clip(list_rect)
         mx, my = pygame.mouse.get_pos()
-        y_c = modal_rect.top + 38
-        row_h = 28
-        for zid in zone_ids:
-            row_rect = pygame.Rect(modal_rect.left + 6, y_c, modal_w - 12, row_h - 2)
-            is_hover = row_rect.collidepoint(mx, my)
+
+        for _, zid, row_rect in rows:
+            if row_rect.bottom < list_rect.top or row_rect.top > list_rect.bottom:
+                continue
+            is_hover = list_rect.collidepoint(mx, my) and row_rect.collidepoint(mx, my)
             is_active = (zid == self.zone_id)
             if is_active:
                 row_bg = (40, 90, 60)
@@ -1008,7 +1315,17 @@ class LevelStudioGUI:
 
             meta_lbl = self.font_small.render(f"{zdata.get('theme', '')} | {len(zdata.get('ascii_grid', []))}r", True, (130, 150, 175))
             self.window.blit(meta_lbl, (row_rect.right - meta_lbl.get_width() - 8, row_rect.top + 6))
-            y_c += row_h
+
+        total_h = len(rows) * row_h
+        if max_scroll > 0 and total_h > 0:
+            track_rect = pygame.Rect(list_rect.right - 6, list_rect.top + 2, 4, list_rect.height - 4)
+            pygame.draw.rect(self.window, (32, 38, 52), track_rect, border_radius=2)
+            thumb_h = max(24, int(track_rect.height * (list_rect.height / total_h)))
+            thumb_range = max(1, track_rect.height - thumb_h)
+            thumb_y = track_rect.top + int((self.zone_picker_scroll / max_scroll) * thumb_range)
+            pygame.draw.rect(self.window, COLOR_ACCENT, (track_rect.left, thumb_y, track_rect.width, thumb_h), border_radius=2)
+
+        self.window.set_clip(prev_clip)
 
     def _draw_help_modal(self):
         """Renders an educational walkthrough modal for the nephew."""
@@ -1027,12 +1344,14 @@ class LevelStudioGUI:
             ("  - Left-Click / Drag:  Paint selected tile or object into the world", COLOR_TEXT_WHITE),
             ("  - Right-Click:         Erase back to air ('.')", COLOR_TEXT_WHITE),
             ("  - Middle-Click / Drag: Pan camera smoothly across the room", COLOR_TEXT_WHITE),
-            ("  - Mouse Wheel:         Zoom in / Zoom out centered on mouse cursor", COLOR_TEXT_WHITE),
+            ("  - Mouse Wheel:         Zoom canvas / scroll Palette & Zone Picker", COLOR_TEXT_WHITE),
             ("  - W / A / S / D:       Smooth camera navigation", COLOR_TEXT_WHITE),
+            ("  - 1/2/G/S/E/F/M/H:     Quick-select Solid, Air, Grapple, Spawn, Enemies, Bosses", COLOR_TEXT_WHITE),
             ("  - Ctrl + Z / Ctrl + Y: Full Undo & Redo history stack", COLOR_TEXT_WHITE),
             ("  - Ctrl + S:            Save zone directly to disk (levels/<zone_id>.json)", COLOR_TEXT_WHITE),
             ("  - F5:                  Instant Playtest! Jump, swing, and stomp right here!", COLOR_TEXT_WHITE),
             ("  - Ctrl + E:            Export formatted Python ASCII code to terminal", COLOR_TEXT_WHITE),
+            ("  - F1 / ?:              Toggle this Help modal", COLOR_TEXT_WHITE),
             ("", COLOR_TEXT_WHITE),
             ("LEVEL DESIGN TIPS FOR A GREAT METROIDVANIA:", (255, 215, 80)),
             ("  1. Player Jump Arc: Froggy jumps 4.5 tiles high and 6 tiles horizontally.", COLOR_TEXT_DIM),
@@ -1041,7 +1360,7 @@ class LevelStudioGUI:
             ("     automatically picks the perfect mossy grass top, corner, or ceiling.", COLOR_TEXT_DIM),
             ("  4. Checkpoint Totems ('X'): Put a totem every 2-3 rooms to save progress!", COLOR_TEXT_DIM),
             ("", COLOR_TEXT_WHITE),
-            ("Press [ESC] or [H] to close this help window.", COLOR_ACCENT),
+            ("Press [ESC], [F1], or [?] to close this help window.", COLOR_ACCENT),
         ]
 
         y_cur = rect.top + 56
@@ -1076,7 +1395,7 @@ Examples:
     parser.add_argument("--play", "-p", metavar="ZONE_ID", help="Playtest directly in this zone with live Froggy physics")
     parser.add_argument("--new", "-n", metavar="ZONE_ID", help="Create a brand-new zone from scratch")
     parser.add_argument("--title", type=str, default=None, help="Title for the new zone")
-    parser.add_argument("--theme", type=str, default="canopy", choices=list(ZONE_THEMES.keys()), help="Biome theme for the new zone")
+    parser.add_argument("--theme", type=str, default="canopy", choices=list(STUDIO_THEMES), help="Biome theme for the new zone")
     parser.add_argument("--cols", type=int, default=60, help="Grid width in tiles for new zone (default: 60)")
     parser.add_argument("--rows", type=int, default=23, help="Grid height in tiles for new zone (default: 23)")
     parser.add_argument("--export", "-e", metavar="ZONE_ID", help="Export clean Python ASCII representation to terminal")

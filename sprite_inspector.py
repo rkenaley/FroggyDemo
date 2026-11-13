@@ -8,7 +8,7 @@ Froggy 32-Bit Arcade Sprites and Animation Sequences.
 Run from PowerShell:
   py sprite_inspector.py --list                 # List all animations & frame counts
   py sprite_inspector.py --dump                 # Full JSON asset manifest dump
-  py sprite_inspector.py --sprite froggy_run    # Focus directly on Froggy's run cycle
+  py sprite_inspector.py --sprite run           # Focus directly on Froggy's run cycle
   py sprite_inspector.py --category enemies     # Inspect all troop enemy animations
   py sprite_inspector.py --category bosses      # Inspect Colossus Boss frames
   py sprite_inspector.py --sprite toad          # Inspect Giga Toad brawler animations
@@ -98,6 +98,12 @@ class SpriteCatalog:
                     "fps": 4.0,
                     "desc": "Calm rhythmic 3-frame breathing cycle with relaxed posture.",
                 },
+                "idle_blink": {
+                    "name": "Idle Eye Blink",
+                    "files": ["froggy_idle_3.png"],
+                    "fps": 2.0,
+                    "desc": "Optional 4th idle frame showing Froggy's quick nictitating blink.",
+                },
                 "run": {
                     "name": "Sprint Cycle",
                     "files": ["froggy_run_0.png", "froggy_run_1.png", "froggy_run_2.png", "froggy_run_3.png"],
@@ -106,33 +112,69 @@ class SpriteCatalog:
                 },
                 "jump": {
                     "name": "Mid-Air Hop",
-                    "files": ["froggy_jump_0.png"],
-                    "fps": 1.0,
-                    "desc": "Upward leaping pose with outstretched legs.",
+                    "files": ["froggy_jump_0.png", "froggy_jump_1.png"],
+                    "fps": 6.0,
+                    "desc": "Upward leaping poses with crouched launch and outstretched legs.",
+                },
+                "fall": {
+                    "name": "Air Descent",
+                    "files": ["froggy_fall_0.png", "froggy_fall_1.png"],
+                    "fps": 6.0,
+                    "desc": "Mid-air falling descent frames preparing webbed feet for landing.",
                 },
                 "wall_slide": {
                     "name": "Wall Cling",
-                    "files": ["froggy_wall_0.png"],
-                    "fps": 1.0,
-                    "desc": "Vertical wall cling pose with webbed pads gripping stone.",
+                    "files": ["froggy_wall_0.png", "froggy_wall_1.png"],
+                    "fps": 4.0,
+                    "desc": "Vertical wall cling poses with webbed pads gripping stone.",
                 },
                 "tongue": {
                     "name": "Tongue Whip",
-                    "files": ["froggy_tongue_0.png"],
-                    "fps": 1.0,
-                    "desc": "Open-mouthed action pose launching tongue whip.",
+                    "files": ["froggy_tongue_0.png", "froggy_tongue_1.png"],
+                    "fps": 8.0,
+                    "desc": "Open-mouthed action poses launching the 360-degree tongue whip.",
                 },
                 "swim": {
                     "name": "Water Swim",
-                    "files": ["froggy_swim_0.png", "froggy_swim_1.png"],
+                    "files": ["froggy_swim_0.png", "froggy_swim_1.png", "froggy_swim_2.png", "froggy_swim_3.png"],
                     "fps": 6.0,
-                    "desc": "Fluid breaststroke kicking cycle inside swamp lagoons.",
+                    "desc": "4-frame fluid breaststroke kicking cycle inside swamp & trench waters.",
                 },
                 "swing": {
                     "name": "Pendulum Swing",
                     "files": ["froggy_swing_0.png", "froggy_swing_1.png"],
                     "fps": 6.0,
                     "desc": "Dynamic swinging poses with arms extended holding grapple line.",
+                },
+                "hurt": {
+                    "name": "Hurt Recoil",
+                    "files": ["froggy_hurt_0.png"],
+                    "fps": 1.0,
+                    "desc": "Knockback recoil frame played during hit-stun & invulnerability.",
+                },
+                "azure_shinobi": {
+                    "name": "Style: Azure Shinobi",
+                    "files": [
+                        "froggy_idle_0.png", "froggy_idle_2.png",
+                        "froggy_run_0.png", "froggy_run_2.png",
+                        "froggy_jump_0.png", "froggy_tongue_1.png",
+                        "froggy_swim_0.png", "froggy_swing_0.png",
+                    ],
+                    "fps": 4.0,
+                    "dir": os.path.join("sprites", "styles", "azure_shinobi"),
+                    "desc": "Generative cobalt & turquoise ninja Froggy style selectable in Main Menu -> Options.",
+                },
+                "crimson_dart": {
+                    "name": "Style: Crimson Dart",
+                    "files": [
+                        "froggy_idle_0.png", "froggy_idle_2.png",
+                        "froggy_run_0.png", "froggy_run_2.png",
+                        "froggy_jump_0.png", "froggy_tongue_1.png",
+                        "froggy_swim_0.png", "froggy_swing_0.png",
+                    ],
+                    "fps": 4.0,
+                    "dir": os.path.join("sprites", "styles", "crimson_dart"),
+                    "desc": "Generative scarlet & obsidian poison-dart Froggy style selectable in Main Menu -> Options.",
                 },
             },
         }
@@ -177,6 +219,24 @@ class SpriteCatalog:
                     "fps": 3.0,
                     "desc": "Camouflaged glacial spider with explosive leap attack.",
                 },
+                "piranha": {
+                    "name": "Razor Piranha",
+                    "files": ["piranha_0.png", "piranha_1.png"],
+                    "fps": 8.0,
+                    "desc": "Aggressive aquatic chomper patrolling underwater trenches.",
+                },
+                "angler": {
+                    "name": "Abyssal Angler",
+                    "files": ["angler_0.png", "angler_1.png"],
+                    "fps": 5.0,
+                    "desc": "Bioluminescent deep-sea predator with glowing esca lure.",
+                },
+                "jelly": {
+                    "name": "Volt Jellyfish",
+                    "files": ["jelly_0.png", "jelly_1.png"],
+                    "fps": 4.0,
+                    "desc": "Bio-electric jellyfish pulsing vertically with shock cycles.",
+                },
             },
         }
 
@@ -186,27 +246,52 @@ class SpriteCatalog:
             "sprites": {
                 "mantis": {
                     "name": "Emperor Mantis",
-                    "files": ["mantis_armored.png", "mantis_exposed.png"],
-                    "fps": 2.0,
-                    "desc": "3-Phase airborne boss with razor scythes and exposed pearl core.",
+                    "files": [
+                        "mantis_armored.png", "mantis_armored_1.png", "mantis_dive.png",
+                        "mantis_exposed.png", "mantis_exposed_1.png", "mantis_enraged.png",
+                    ],
+                    "fps": 4.0,
+                    "desc": "3-Phase airborne colossus (+15% speed across all stages) with razor scythes & coral core.",
                 },
                 "hound": {
                     "name": "The Dread Hound",
-                    "files": ["hound_idle.png", "hound_lunge.png", "hound_dazed.png", "hound_howl.png", "hound_projectile.png"],
-                    "fps": 3.0,
-                    "desc": "Cybernetic canine colossus with ferocious lunge and wall daze.",
+                    "files": [
+                        "hound_idle.png", "hound_idle_1.png", "hound_lunge.png",
+                        "hound_howl.png", "hound_flame.png", "hound_dazed.png", "hound_projectile.png",
+                    ],
+                    "fps": 4.0,
+                    "desc": "16 HP obsidian hellhound with Ground-Spike Howl, Fake-Out Feint, & Phase 3 Flamethrower.",
                 },
                 "toad": {
-                    "name": "Giga Toad",
-                    "files": ["toad_idle.png", "toad_slam.png", "toad_punch.png", "toad_dazed.png", "toad_enraged.png"],
-                    "fps": 2.0,
-                    "desc": "Heavyweight brawler colossus with ground pounds and bilateral shockwaves.",
+                    "name": "Giga Toad (96x96 Ultra-Jacked Battletoad)",
+                    "files": [
+                        "toad_idle_0.png", "toad_idle_1.png", "toad_idle_2.png", "toad_idle_3.png",
+                        "toad_walk_0.png", "toad_walk_1.png", "toad_walk_2.png", "toad_walk_3.png", "toad_walk_4.png", "toad_walk_5.png",
+                        "toad_slam_0.png", "toad_slam_1.png", "toad_slam_2.png", "toad_slam_3.png",
+                        "toad_punch_0.png", "toad_punch_1.png", "toad_punch_2.png", "toad_punch_3.png",
+                        "toad_dazed_0.png", "toad_dazed_1.png", "toad_dazed_2.png", "toad_dazed_3.png",
+                        "toad_enraged_0.png", "toad_enraged_1.png", "toad_enraged_2.png", "toad_enraged_3.png",
+                    ],
+                    "fps": 6.0,
+                    "desc": "Enlarged 96x96 Ultra-Jacked Battletoad (+15% baseline/max speed & continuous rage scaling).",
                 },
                 "falo": {
                     "name": "Falo the Snowman",
-                    "files": ["falo_idle.png", "falo_throw.png", "falo_melt.png"],
-                    "fps": 2.0,
-                    "desc": "Blizzard summit boss throwing snowballs and detaching carrot nose.",
+                    "files": [
+                        "falo_idle.png", "falo_idle_1.png", "falo_throw.png",
+                        "falo_throw_1.png", "falo_vulnerable.png", "falo_melt.png",
+                    ],
+                    "fps": 3.0,
+                    "desc": "84 HP blizzard summit boss with 6-snowflake orbit shield and hypothermia beam.",
+                },
+                "shark": {
+                    "name": "Demon Shark",
+                    "files": [
+                        "shark_idle.png", "shark_idle_1.png", "shark_charge.png",
+                        "shark_roar.png", "shark_dazed.png", "shark_enraged.png",
+                    ],
+                    "fps": 4.0,
+                    "desc": "85 HP Unstompable Abyssal Colossus summoning swirling whirlpool vortices.",
                 },
             },
         }
@@ -217,15 +302,15 @@ class SpriteCatalog:
             "sprites": {
                 "elder": {
                     "name": "Elder Tree Frog",
-                    "files": ["npc_elder_0.png", "npc_elder_1.png"],
-                    "fps": 2.0,
+                    "files": ["npc_elder_0.png", "npc_elder_1.png", "npc_elder_2.png", "npc_elder_3.png"],
+                    "fps": 4.0,
                     "desc": "Elder Mossbeard providing guidance, lore, and ancient secrets.",
                 },
                 "shopkeeper": {
                     "name": "Village Shopkeeper",
-                    "files": ["npc_shopkeeper_0.png", "npc_shopkeeper_1.png"],
-                    "fps": 2.0,
-                    "desc": "Shopkeeper Ribbit trading eaten bugs for restorative health tonics.",
+                    "files": ["npc_shopkeeper_0.png", "npc_shopkeeper_1.png", "npc_shopkeeper_2.png", "npc_shopkeeper_3.png"],
+                    "fps": 4.0,
+                    "desc": "Shopkeeper trading captured bugs for remedies & upgrades.",
                 },
             },
         }
@@ -269,6 +354,13 @@ class SpriteCatalog:
                     "dir": "tiles",
                     "desc": "Submarine air vent releasing rising bubble streams that refill oxygen.",
                 },
+                "burrow_rock": {
+                    "name": "Cracked Burrow Rock",
+                    "files": ["burrow_rock_0.png", "burrow_rock_1.png"],
+                    "fps": 2.0,
+                    "dir": "tiles",
+                    "desc": "Destructible rock barrier broken by Charged Muhlaser Frogbeams.",
+                },
                 "door": {
                     "name": "Rune Portal",
                     "files": [f"door_{i}.png" for i in range(4)],
@@ -276,10 +368,31 @@ class SpriteCatalog:
                     "dir": "tiles",
                     "desc": "Ancient glowing stone gateway connecting Metroidvania rooms.",
                 },
+                "boss_door": {
+                    "name": "Boss Gate",
+                    "files": [f"boss_door_{i}.png" for i in range(4)],
+                    "fps": 4.0,
+                    "dir": "tiles",
+                    "desc": "Sealed boss-chamber gateway pulsing before colossus arenas.",
+                },
+                "master_key_door": {
+                    "name": "Master Key Door",
+                    "files": ["master_key_door.png"] + [f"master_key_door_state_{i}.png" for i in range(5)],
+                    "fps": 2.0,
+                    "dir": "tiles",
+                    "desc": "4-slot Toad Colosseum gate tracking inserted Master Key Fragments (0-4).",
+                },
+                "metroid_door": {
+                    "name": "Metroid Gate",
+                    "files": ["metroid_door_cyan.png", "metroid_door_red.png"],
+                    "fps": 2.0,
+                    "dir": "tiles",
+                    "desc": "Color-coded Metroidvania passage seal (cyan open / red locked).",
+                },
             },
         }
 
-        # 6. Relics & Collectibles
+        # 6. Relics, Keys & Collectibles
         self.categories["props"] = {
             "name": "Relics & Props",
             "sprites": {
@@ -293,7 +406,42 @@ class SpriteCatalog:
                     "name": "Red Boomerang",
                     "files": ["powerup_red_boomerang.png", "boomerang_red.png"],
                     "fps": 4.0,
-                    "desc": "Curved throwing weapon providing long-range projectile attacks.",
+                    "desc": "Curved throwing weapon firing 4 piercing spore shots.",
+                },
+                "muhlaser": {
+                    "name": "The Muhlaser",
+                    "files": ["powerup_muhlaser.png"],
+                    "fps": 1.0,
+                    "desc": "3s charge frogbeam relic that shatters Cracked Burrow Rocks & Demon Shark.",
+                },
+                "vitality_heart": {
+                    "name": "Vitality Heart",
+                    "files": ["powerup_heart_container.png"],
+                    "fps": 1.0,
+                    "desc": "Ancient Vitality Heart Container expanding maximum health (+1 HP).",
+                },
+                "falo_heart": {
+                    "name": "Falo's Heart",
+                    "files": ["powerup_falo_heart.png"],
+                    "fps": 1.0,
+                    "desc": "Glacial snowflake relic resetting body heat & granting 30s Lava Guard.",
+                },
+                "key_fragments": {
+                    "name": "Key Fragments",
+                    "files": [
+                        "key_fragment_mantis.png",
+                        "key_fragment_hound.png",
+                        "key_fragment_toad.png",
+                        "key_fragment_falo.png",
+                    ],
+                    "fps": 2.0,
+                    "desc": "The 4 Master Key Fragments dropped by Mantis, Dread Hound, Giga Toad & Falo.",
+                },
+                "master_key": {
+                    "name": "Master Key",
+                    "files": ["master_key.png"],
+                    "fps": 1.0,
+                    "desc": "Forged Master Key uniting all 4 fragments to enter Victory Sanctuary.",
                 },
                 "totem": {
                     "name": "Checkpoint Totem",
@@ -301,6 +449,27 @@ class SpriteCatalog:
                     "fps": 1.0,
                     "dir": "props",
                     "desc": "Restorative totem that heals HP, warmth, and auto-saves progress.",
+                },
+                "mantis_totem": {
+                    "name": "Mantis Totem",
+                    "files": ["mantis_totem.png"],
+                    "fps": 1.0,
+                    "dir": "props",
+                    "desc": "Ancient warning totem carved before Emperor Mantis Sanctum.",
+                },
+                "statue": {
+                    "name": "Frog Statue",
+                    "files": ["frog_statue.png"],
+                    "fps": 1.0,
+                    "dir": "props",
+                    "desc": "Weathered stone amphibian monolith from the Sunken Temple.",
+                },
+                "flora": {
+                    "name": "Canopy Flora",
+                    "files": ["fern_0.png", "fern_1.png", "fern_2.png", "grass_0.png", "grass_1.png"],
+                    "fps": 2.0,
+                    "dir": "props",
+                    "desc": "Jungle fern and tall grass foreground environment decorations.",
                 },
                 "shrooms": {
                     "name": "Glowing Shrooms",
@@ -448,6 +617,7 @@ class SpriteInspectorGUI:
         self.sidebar_w = 260
         self.telemetry_w = 320
         self.bottom_h = 140
+        self.sidebar_scroll = 0
         self._update_layout()
 
         # Viewer & Camera state
@@ -472,6 +642,7 @@ class SpriteInspectorGUI:
         # Loaded Surfaces Cache for active sequence
         self.loaded_frames = []
         self._load_active_frames()
+        self._ensure_active_sprite_visible()
 
         # Status Flash
         self.status_msg = f"Ready. Inspecting '{self.active_sprite}' ({len(self.loaded_frames)} frames)."
@@ -479,6 +650,7 @@ class SpriteInspectorGUI:
 
     def _update_layout(self):
         self.sidebar_rect = pygame.Rect(0, 0, self.sidebar_w, self.screen_h)
+        self.sidebar_list_rect = pygame.Rect(0, 38, self.sidebar_w, max(1, self.screen_h - 38))
         self.telemetry_rect = pygame.Rect(self.screen_w - self.telemetry_w, 0, self.telemetry_w, self.screen_h)
         self.stage_rect = pygame.Rect(
             self.sidebar_w,
@@ -492,6 +664,65 @@ class SpriteInspectorGUI:
             self.screen_w - self.sidebar_w - self.telemetry_w,
             self.bottom_h,
         )
+
+    def _get_sidebar_layout(self):
+        """Shared layout & scroll clamping for sidebar rendering and hit-testing."""
+        list_rect = self.sidebar_list_rect
+        top_pad = 8
+        header_step = 22
+        item_h = 22
+        item_step = 24
+        cat_gap = 6
+        bottom_pad = 8
+
+        raw_y = top_pad
+        raw_headers = []
+        raw_items = []
+        for cat_id, cat_info in self.catalog.categories.items():
+            raw_headers.append((cat_id, cat_info["name"], raw_y))
+            raw_y += header_step
+            for sp_id, sp_info in cat_info["sprites"].items():
+                raw_items.append((cat_id, sp_id, sp_info, raw_y))
+                raw_y += item_step
+            raw_y += cat_gap
+
+        total_h = raw_y + bottom_pad
+        max_scroll = max(0, total_h - list_rect.height)
+        self.sidebar_scroll = max(0, min(max_scroll, self.sidebar_scroll))
+
+        item_w = self.sidebar_w - (22 if max_scroll > 0 else 16)
+        headers = [
+            (cat_id, cat_name, list_rect.top + hy - self.sidebar_scroll)
+            for cat_id, cat_name, hy in raw_headers
+        ]
+        items = [
+            (cat_id, sp_id, sp_info, pygame.Rect(8, list_rect.top + iy - self.sidebar_scroll, item_w, item_h))
+            for cat_id, sp_id, sp_info, iy in raw_items
+        ]
+        return list_rect, headers, items, total_h, max_scroll
+
+    def _scroll_sidebar(self, delta_px):
+        """Scrolls the sidebar tree vertically and clamps to bounds."""
+        self.sidebar_scroll += delta_px
+        self._get_sidebar_layout()
+
+    def _ensure_active_sprite_visible(self):
+        """Adjusts sidebar_scroll so the active sprite item lies inside sidebar_list_rect."""
+        list_rect, _, items, _, _ = self._get_sidebar_layout()
+        for cat_id, sp_id, _, rect in items:
+            if cat_id == self.active_category and sp_id == self.active_sprite:
+                if rect.top < list_rect.top + 4:
+                    self._scroll_sidebar(rect.top - (list_rect.top + 4))
+                elif rect.bottom > list_rect.bottom - 4:
+                    self._scroll_sidebar(rect.bottom - (list_rect.bottom - 4))
+                break
+
+    def _get_displayed_frame(self):
+        """Returns (filename, display_surface) matching stage orientation including flip_h."""
+        fname, raw_surf = self.loaded_frames[self.current_frame_idx]
+        if self.flip_h:
+            return fname, pygame.transform.flip(raw_surf, True, False)
+        return fname, raw_surf
 
     def _load_active_frames(self):
         """Loads all PNG frames for the selected sprite sequence."""
@@ -522,6 +753,7 @@ class SpriteInspectorGUI:
         self.active_category = cat_key
         self.active_sprite = sprite_key
         self._load_active_frames()
+        self._ensure_active_sprite_visible()
         self.status_msg = f"Inspecting: [{cat_key}] {sprite_key} ({len(self.loaded_frames)} frames)"
         self.status_timer = 180
 
@@ -574,6 +806,19 @@ class SpriteInspectorGUI:
                         self.show_grid = not self.show_grid
                     elif event.key == pygame.K_f:
                         self.flip_h = not self.flip_h
+                    elif event.key == pygame.K_UP:
+                        self._scroll_sidebar(-24)
+                    elif event.key == pygame.K_DOWN:
+                        self._scroll_sidebar(24)
+                    elif event.key == pygame.K_PAGEUP:
+                        self._scroll_sidebar(-max(48, self.sidebar_list_rect.height - 48))
+                    elif event.key == pygame.K_PAGEDOWN:
+                        self._scroll_sidebar(max(48, self.sidebar_list_rect.height - 48))
+                    elif event.key == pygame.K_HOME:
+                        self.sidebar_scroll = 0
+                    elif event.key == pygame.K_END:
+                        _, _, _, _, max_scroll = self._get_sidebar_layout()
+                        self.sidebar_scroll = max_scroll
                     elif event.key in (pygame.K_PLUS, pygame.K_EQUALS):
                         self._adjust_zoom(1)
                     elif event.key in (pygame.K_MINUS, pygame.K_UNDERSCORE):
@@ -582,9 +827,15 @@ class SpriteInspectorGUI:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
                     if self.sidebar_rect.collidepoint(mx, my):
-                        self._handle_sidebar_click(mx, my)
+                        if event.button == 4:
+                            self._scroll_sidebar(-32)
+                        elif event.button == 5:
+                            self._scroll_sidebar(32)
+                        elif event.button == 1:
+                            self._handle_sidebar_click(mx, my)
                     elif self.bottom_rect.collidepoint(mx, my):
-                        self._handle_bottom_click(mx, my)
+                        if event.button == 1:
+                            self._handle_bottom_click(mx, my)
                     elif self.stage_rect.collidepoint(mx, my):
                         if event.button == 4:  # Wheel Up
                             self._adjust_zoom(1)
@@ -602,17 +853,14 @@ class SpriteInspectorGUI:
         self.zoom = self.zoom_levels[self.zoom_idx]
 
     def _handle_sidebar_click(self, mx, my):
-        """Selects category or sprite from the hierarchy tree."""
-        y_c = 44
-        for cat_id, cat_info in self.catalog.categories.items():
-            y_c += 22  # category header
-            for sp_id, sp_info in cat_info["sprites"].items():
-                item_rect = pygame.Rect(8, y_c, self.sidebar_w - 16, 22)
-                if item_rect.collidepoint(mx, my):
-                    self.select_sprite(cat_id, sp_id)
-                    return
-                y_c += 24
-            y_c += 6
+        """Selects category or sprite from the scrolled hierarchy tree."""
+        list_rect, _, items, _, _ = self._get_sidebar_layout()
+        if not list_rect.collidepoint(mx, my):
+            return
+        for cat_id, sp_id, _, item_rect in items:
+            if item_rect.collidepoint(mx, my):
+                self.select_sprite(cat_id, sp_id)
+                return
 
     def _handle_bottom_click(self, mx, my):
         """Handles clicking frame thumbnails in the filmstrip or playback buttons."""
@@ -682,41 +930,52 @@ class SpriteInspectorGUI:
         self.window.blit(title_surf, (14, 12))
         pygame.draw.line(self.window, COLOR_PANEL_BORDER, (0, 36), (self.sidebar_w, 36))
 
+        list_rect, headers, items, total_h, max_scroll = self._get_sidebar_layout()
+        prev_clip = self.window.get_clip()
+        self.window.set_clip(list_rect)
         mx, my = pygame.mouse.get_pos()
-        y_c = 44
 
-        for cat_id, cat_info in self.catalog.categories.items():
-            cat_surf = self.font_bold.render(f"▼ {cat_info['name'].upper()}", True, (255, 215, 80))
-            self.window.blit(cat_surf, (12, y_c))
-            y_c += 22
+        for _, cat_name, hy in headers:
+            if hy + 22 < list_rect.top or hy > list_rect.bottom:
+                continue
+            cat_surf = self.font_bold.render(f"▼ {cat_name.upper()}", True, (255, 215, 80))
+            self.window.blit(cat_surf, (12, hy))
 
-            for sp_id, sp_info in cat_info["sprites"].items():
-                item_rect = pygame.Rect(8, y_c, self.sidebar_w - 16, 22)
-                is_active = (self.active_category == cat_id and self.active_sprite == sp_id)
-                is_hover = item_rect.collidepoint(mx, my)
+        for cat_id, sp_id, sp_info, item_rect in items:
+            if item_rect.bottom < list_rect.top or item_rect.top > list_rect.bottom:
+                continue
+            is_active = (self.active_category == cat_id and self.active_sprite == sp_id)
+            is_hover = list_rect.collidepoint(mx, my) and item_rect.collidepoint(mx, my)
 
-                if is_active:
-                    bg_col = (45, 95, 65)
-                elif is_hover:
-                    bg_col = COLOR_BUTTON_HOVER
-                else:
-                    bg_col = (28, 34, 48)
+            if is_active:
+                bg_col = (45, 95, 65)
+            elif is_hover:
+                bg_col = COLOR_BUTTON_HOVER
+            else:
+                bg_col = (28, 34, 48)
 
-                pygame.draw.rect(self.window, bg_col, item_rect, border_radius=3)
-                if is_active:
-                    pygame.draw.rect(self.window, COLOR_ACCENT, item_rect, 1, border_radius=3)
+            pygame.draw.rect(self.window, bg_col, item_rect, border_radius=3)
+            if is_active:
+                pygame.draw.rect(self.window, COLOR_ACCENT, item_rect, 1, border_radius=3)
 
-                lbl_col = COLOR_TEXT_WHITE if (is_active or is_hover) else COLOR_TEXT_DIM
-                lbl = self.font_small.render(sp_info.get("name", sp_id)[:24], True, lbl_col)
-                self.window.blit(lbl, (item_rect.left + 8, item_rect.top + 4))
+            lbl_col = COLOR_TEXT_WHITE if (is_active or is_hover) else COLOR_TEXT_DIM
+            lbl = self.font_small.render(sp_info.get("name", sp_id)[:22], True, lbl_col)
+            self.window.blit(lbl, (item_rect.left + 8, item_rect.top + 4))
 
-                # Frame count badge
-                f_count = len(sp_info["files"])
-                badge = self.font_small.render(f"{f_count}f", True, (130, 150, 175))
-                self.window.blit(badge, (item_rect.right - badge.get_width() - 6, item_rect.top + 4))
+            # Frame count badge
+            f_count = len(sp_info["files"])
+            badge = self.font_small.render(f"{f_count}f", True, (130, 150, 175))
+            self.window.blit(badge, (item_rect.right - badge.get_width() - 6, item_rect.top + 4))
 
-                y_c += 24
-            y_c += 6
+        if max_scroll > 0 and total_h > 0:
+            track_rect = pygame.Rect(self.sidebar_w - 7, list_rect.top + 4, 4, list_rect.height - 8)
+            pygame.draw.rect(self.window, (32, 38, 52), track_rect, border_radius=2)
+            thumb_h = max(24, int(track_rect.height * (list_rect.height / total_h)))
+            thumb_range = max(1, track_rect.height - thumb_h)
+            thumb_y = track_rect.top + int((self.sidebar_scroll / max_scroll) * thumb_range)
+            pygame.draw.rect(self.window, COLOR_ACCENT, (track_rect.left, thumb_y, track_rect.width, thumb_h), border_radius=2)
+
+        self.window.set_clip(prev_clip)
 
     def _draw_stage(self):
         """Renders the central viewing stage with checkerboard backdrop, sprite, and overlays."""
@@ -726,9 +985,7 @@ class SpriteInspectorGUI:
         if not self.loaded_frames:
             return
 
-        current_fname, raw_surf = self.loaded_frames[self.current_frame_idx]
-        if self.flip_h:
-            raw_surf = pygame.transform.flip(raw_surf, True, False)
+        current_fname, raw_surf = self._get_displayed_frame()
 
         sw, sh = raw_surf.get_size()
         scaled_w = int(sw * self.zoom)
@@ -908,9 +1165,9 @@ class SpriteInspectorGUI:
         if not self.loaded_frames:
             return
 
-        fname, raw_surf = self.loaded_frames[self.current_frame_idx]
-        sw, sh = raw_surf.get_size()
-        bbox = raw_surf.get_bounding_rect()
+        fname, display_surf = self._get_displayed_frame()
+        sw, sh = display_surf.get_size()
+        bbox = display_surf.get_bounding_rect()
         total_pixels = sw * sh
         bbox_pixels = bbox.width * bbox.height
 
@@ -946,6 +1203,7 @@ class SpriteInspectorGUI:
         probe_info = "Hover cursor over sprite"
         hover_col = (0, 0, 0, 0)
         has_pixel = False
+        self.last_probe = None
 
         if self.stage_rect.collidepoint(mx, my):
             # Transform screen mouse into sprite local coordinates
@@ -958,7 +1216,8 @@ class SpriteInspectorGUI:
 
             if 0 <= lx < sw and 0 <= ly < sh:
                 has_pixel = True
-                hover_col = raw_surf.get_at((lx, ly))
+                hover_col = display_surf.get_at((lx, ly))
+                self.last_probe = (lx, ly, tuple(hover_col))
                 probe_info = f"Pixel ({lx:02d}, {ly:02d}) RGBA: {hover_col[0]},{hover_col[1]},{hover_col[2]},{hover_col[3]}"
 
         probe_lbl = self.font_small.render(probe_info, True, COLOR_TEXT_WHITE)

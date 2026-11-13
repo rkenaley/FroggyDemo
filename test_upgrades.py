@@ -59,10 +59,10 @@ def run_tests():
     assert "victory_chamber" in world.rooms, "victory_chamber missing from world rooms!"
 
     colosseum = world.rooms["toad_colosseum"]
-    assert "K" in colosseum.doors and "L" in colosseum.doors, "Door K or L missing in toad_colosseum!"
-    assert colosseum.doors["K"].target_room == "hound_sanctum"
+    assert "M" in colosseum.doors and "L" in colosseum.doors, "Door M or L missing in toad_colosseum!"
+    assert colosseum.doors["M"].target_room == "hound_treasury"
     assert colosseum.doors["L"].target_room == "victory_chamber"
-    print("  + toad_colosseum doors verified: Door K -> hound_sanctum, Door L -> victory_chamber")
+    print("  + toad_colosseum doors verified: Door M -> hound_treasury, Door L -> victory_chamber")
 
     # 4. Verify Giga Toad Boss Spawning, Awakening and Stats
     print("\n[TEST 4] Verifying Giga Toad Boss in Colosseum...")
@@ -71,7 +71,7 @@ def run_tests():
     assert boss is not None, "Giga Toad failed to spawn in toad_colosseum!"
     assert isinstance(boss, fe.GigaToadBoss), f"Expected GigaToadBoss, got {type(boss)}"
     assert boss.name == "GIGA TOAD"
-    assert boss.hp == fe.BOSS_MAX_HP_TOAD == 10
+    assert boss.hp == fe.BOSS_MAX_HP_TOAD == 90
     assert colosseum.is_door_locked("L") == True, "Exit door L must be locked while Giga Toad is alive!"
     print(f"  + Giga Toad spawned with {boss.hp} HP. Door L locked status: {colosseum.is_door_locked('L')}")
 
@@ -112,17 +112,17 @@ def run_tests():
     assert can_stomp, "Player should be able to stomp Giga Toad while PANTING!"
     hp_before = boss.hp
     boss.take_stomp_damage(colosseum, audio)
-    assert boss.hp == hp_before - 2, f"Stomp should deal 2 damage! HP: {boss.hp} vs {hp_before}"
+    assert boss.hp == hp_before - 8, f"Stomp should deal 8 damage! HP: {boss.hp} vs {hp_before}"
 
     boss.state = "PANTING"
     hp_before = boss.hp
     hit_bm = boss.hit_by_spore_boomerang(colosseum, is_red=True)
-    assert hit_bm and boss.hp == hp_before - 2, f"Red Boomerang should deal 2 damage!"
+    assert hit_bm and boss.hp == hp_before - 6, f"Red Boomerang should deal 6 damage! HP: {boss.hp}"
 
     boss.state = "PANTING"
     hp_before = boss.hp
     hit_tw = boss.hit_by_tongue_whip(colosseum, audio)
-    assert hit_tw and boss.hp == hp_before - 1, f"Tongue whip should deal 1 damage!"
+    assert hit_tw and boss.hp == hp_before - 5, f"Tongue whip should deal 5 damage! HP: {boss.hp}"
     print("  + Giga Toad combat vulnerabilities verified.")
 
     # 7. Verify Whip Grapple Collision Anywhere Along the Tongue Shaft
@@ -187,7 +187,7 @@ def run_tests():
     hound = sanctum.get_active_boss()
     assert hound is not None, "Dread Hound failed to spawn in hound_sanctum!"
     assert isinstance(hound, fe.DreadHoundBoss), f"Expected DreadHoundBoss, got {type(hound)}"
-    assert hound.hp == fe.BOSS_MAX_HP_HOUND == 8
+    assert hound.hp == fe.BOSS_MAX_HP_HOUND == 16
     print(f"  + Dread Hound spawned with {hound.hp} HP in hound_sanctum.")
 
     # Verify rendering across all states with upgraded 32-bit sprites

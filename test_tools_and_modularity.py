@@ -150,7 +150,7 @@ def test_3_sprite_inspector_and_bounding_boxes():
     assert len(gui.loaded_frames) >= 5
     _, toad_surf = gui.loaded_frames[0]
     tw, th = toad_surf.get_size()
-    assert tw in (64, 80) and th in (64, 80)
+    assert tw in (64, 80, 96) and th in (64, 80, 96)
     print(f"  + Giga Toad Colossus {tw}x{th} multi-state frames verified ({len(gui.loaded_frames)} poses) PASS")
 
     # Test modulo animation loop step

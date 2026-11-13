@@ -1,225 +1,103 @@
-# 🐸 Froggy Modular Architecture & Standalone Tools Guide
-*A Plaintext Nephew Walkthrough to the Standalone Level Studio, Sprite Inspector & Modular Level Registry*
+# Tools & Modular Architecture Guide
+
+*Super Froggy* cleanly separates level data, visual tools, asset inspectors, and topology checks from the main game engine so you can build, edit, and verify content rapidly.
 
 ---
 
-## 🌟 1. Project Directory & File Map: What Lives Where
+## 1. Modular World Data (`world_data.py` & `levels/*.json`)
 
-```
-c:\AGProj\FroggyDemo\
-│
-├── froggy_engine.py               # Core 16-Bit Engine & Runtime Game Loop (60 FPS loop, physics, audio, camera)
-├── world_data.py                  # Modular Metroidvania World Registry, Tile Legends, Biome Themes & API
-├── level_studio.py                # Standalone Level Builder, Zone Inspector & Precision Tweaker
-├── sprite_inspector.py            # Standalone 32-Bit Sprite & Animation Studio with Telemetry Analyzer
-├── generate_assets.py             # Procedural 32-bit sprite & autotile generator
-├── sprite_studio.py               # Chroma-key extractor & specular shading pipeline
-├── midi_writer.py                 # Standard MIDI File (.mid) synthesizer & chiptune audio generator
-│
-├── levels/                        # Standalone JSON files for every zone (direct text / tool editing)
-│   ├── level_1.json               # Act 1-3 Canopy to Mantis Sanctum (116 x 23 tiles)
-│   ├── entrance_hall.json         # Sunken Temple Hall with Stomping Boots Pedestal
-│   ├── chimney_tower.json         # Vertical Vine Chimney Ascent (Wall-Jump tower)
-│   ├── grapple_cavern.json        # Bioluminescent Grapple Cavern
-│   ├── boss_sanctum.json          # Emperor Mantis Arena
-│   ├── hound_sanctum.json         # The Dread Hound Colossus Arena
-│   ├── toad_colosseum.json        # Giga Toad Brawler Colosseum
-│   ├── victory_chamber.json       # Sacred Lilypad Sanctuary
-│   ├── frost_ascent.json          # Freezing Ascent to Glacial Summit
-│   ├── frost_springs.json         # Steamy Glacial Hot Springs & Checkpoint Totem
-│   ├── falo_arena.json            # Blizzard Peak - Falo the Snowman Arena
-│   ├── sunken_grotto.json         # Sunken Submarine Grotto (Oxygen vents & lagoons)
-│   ├── volcanic_chasm.json        # Volcanic Magma Chasm (Cold waterfall mist)
-│   └── sandbox_room.json          # Empty sandbox test room
-│
-├── assets/                        # Raw generated and packaged game assets
-│   ├── sprites/                   # 51 PNG character and boss sprites (32x32, 64x64, 72x72)
-│   ├── tiles/                     # 109 PNG autotiles (16 variants x 5 biomes) + doors & hazards
-│   ├── props/                     # 11 PNG environmental props (ferns, mushrooms, totems)
-│   ├── sfx/                       # 29 stereo 16-bit 44.1 kHz WAV sound effects
-│   └── music/                     # 9 Standard MIDI soundtrack files (.mid)
-│
-└── test_*.py                      # Automated Verification & Benchmark Test Suites
-    ├── test_tools_and_modularity.py # Tests world_data, level_studio, sprite_inspector & 60 FPS benchmark
-    ├── test_v6_features.py          # Tests 16-bit WAV bank, biomes, NPCs & Boss Rush
-    ├── test_v5_full.py              # Tests thermoregulation, bosses, and save slots
-    ├── test_upgrades.py             # Tests 32-bit sprite assets, brawler bosses & damping
-    └── test_gameplay_frames.py      # Automated 60-frame headless gameplay simulation
+`world_data.py` centralizes all **23 Metroidvania & Skyfrog zones** across Map Grids 1 & 2 (backed by JSON files in `levels/`) and exports:
+* `WORLD_BLUEPRINTS`: Dictionary of all 23 loaded rooms (19 Grid-1 adventure/boss/treasury rooms, 3 Grid-2 Skyfrog Tree/Nimbus zones, plus `sandbox_room`).
+* `TILE_LEGEND`: Canonical registry of **53 active ASCII characters** (terrain, hazards, currents, Cracked Burrow Rocks `'r'`, grapple/totems, relics, enemies, all 5 bosses, NPCs, letter doors, and numeric portals `'0'..'9'`).
+* Helper APIs: `reload_blueprints()`, `list_zones()`, `get_zone()`, `create_blank_zone()`, `save_zone()`, and `validate_zone_blueprint()`.
+
+---
+
+## 2. Froggy Level Studio (`level_studio.py`)
+
+A full interactive 2D tilemap editor and instant playtest runner.
+
+### CLI Commands
+```powershell
+py level_studio.py                               # Launch GUI (defaults to level_1)
+py level_studio.py --zone frost_springs          # Open GUI directly in a specific zone
+py level_studio.py --list                        # Print summary table of all 23 zones
+py level_studio.py --info entrance_hall          # Inspect zone metadata, doors & counts
+py level_studio.py --play frost_springs          # Playtest a zone directly (no main menu)
+py level_studio.py --new my_cavern --theme cavern --cols 60 --rows 23
+py level_studio.py --export toad_colosseum       # Print Python ASCII block for a zone
+py level_studio.py --reset level_1               # Restore zone JSON to built-in default
 ```
 
----
+*Supported `--theme` values (all 10 biome themes):* `canopy`, `temple`, `cavern`, `sanctum`, `hound_palace`, `ice`, `volcanic`, `underwater`, `tree_ascent`, `sky_clouds`.
 
-## 🛠️ 2. Tool 1: Standalone Level Studio (`level_studio.py`)
-
-Instead of being trapped inside a hardcoded sandbox menu in `froggy_engine.py`, the Level Studio is a **standalone PowerShell tool**. You can inspect any zone, view its exact string ID, customize autogenerated levels with tile-by-tile precision, or launch brand-new zones from scratch!
-
-### A. PowerShell CLI Commands
-
-| Action | PowerShell Command | What It Does |
-| :--- | :--- | :--- |
-| **List All Zones** | `py level_studio.py --list` | Prints all exact zone IDs, titles, dimensions, themes, and custom status. |
-| **Inspect a Zone** | `py level_studio.py --info entrance_hall` | Prints full telemetry: spawn coords, doors, NPCs, dialogue, ASCII preview. |
-| **Launch Visual Editor** | `py level_studio.py --zone level_1` | Opens the 720p visual editor loaded directly into `level_1`. |
-| **Playtest Directly** | `py level_studio.py --play frost_springs` | Boots Froggy directly into that room to test jumps, swings, and combat! |
-| **Start New Zone** | `py level_studio.py --new secret_cavern --theme ice --cols 60 --rows 23` | Creates a new zone with solid outer borders, spawn point, and saves to disk. |
-| **Export Python Code** | `py level_studio.py --export toad_colosseum` | Generates clean Python ASCII code ready to paste into source code. |
-| **Reset to Built-in** | `py level_studio.py --reset level_1` | Discards custom disk edits and restores factory default built-in room. |
-
-### B. Visual Editor Controls (In GUI)
-- **Left-Click / Drag**: Paint the currently selected tile or entity brush into the world.
-- **Right-Click / Drag**: Erase tiles back to air (`.`).
-- **Middle-Click / Drag** or **Space + Left Click Drag**: Pan smoothly across large scrolling levels.
-- **Mouse Wheel**: Zoom in and out centered on your mouse cursor (0.5x up to 4.0x).
-- **W / A / S / D** or **Arrow Keys**: Pan camera.
-- **Ctrl + Z / Ctrl + Y**: Full Undo and Redo history stack.
-- **Ctrl + S**: Save zone directly to `levels/<zone_id>.json`.
-- **F5 Key**: **Instant Playtest Mode!** Froggy spawns at `S` with full physics, pendulum grappling, and enemies. Press `ESC` to return to editor with all edits intact!
-- **Ctrl + E**: Export clean Python code representation to terminal.
-- **H / F1 Key**: Toggles the on-screen nephew help guide.
-
-### C. Under the Hood: How the Math Works
-1. **Screen-to-World-to-Grid Transform**:
-   $$\text{canvas\_x} = \frac{\text{mouse\_x} - \text{palette\_width}}{\text{zoom}}$$
-   $$\text{world\_x} = \text{canvas\_x} + \text{camera\_x}$$
-   $$\text{tile\_col} = \lfloor \text{world\_x} / 16 \rfloor, \quad \text{tile\_row} = \lfloor \text{world\_y} / 16 \rfloor$$
-2. **Real-Time 4-Bit Bitmask Autotiling**:
-   Every time you paint a `#` block or erase one, the editor recalculates neighbor connectivity:
-   $$\text{Mask} = (N \times 1) + (E \times 2) + (S \times 4) + (W \times 8)$$
-   and swaps the texture in real time so you see lush mossy grass, ceiling roots, and stone corners immediately!
+### GUI Features & Controls
+* **Full Scrollable Brush Palette**: Covers all active terrain tiles (`#`, `.`, `r`, `~`, `<`, `>`, `v`, `c`, `o`), mechanics (`G`, `S`, `X`, `T`), power-ups/relics (`J`, `R`, `L`, `V`), enemies (`E`, `F`, `N`, `W`, `b`, `w`, `p`, `a`, `j`), all 5 bosses (`M`, `H`, `Q`, `O`, `s`), NPCs (`e`, `k`), and doors (`A`, `B`, `C`, `D`, `I`, `K`, `P`, `U`, `Y`, `Z`, plus portal IDs `1`, `2`). Scroll vertically with the mouse wheel when hovering the sidebar.
+* **Scrollable Zone Picker (`[ZONES]`)**: Scroll with mouse wheel, `Up`/`Down`, `PageUp`/`PageDown`, `Home`/`End` across all 20+ zones cleanly inside the modal.
+* **Live Autotiling & Biome Previews**: Renders 4-bit autotiled walls and themed backdrops across all 8 zone themes.
+* **Instant Playtest (`F5` or `[PLAY]`)**: Saves your zone, launches a live `640x360` -> `1280x720` playtest (supporting room transitions, Shopkeeper, `[Tab / I]` Inventory, and `[R / Space]` respawn on `hp <= 0`), and returns cleanly to the Studio window when closed.
+* **Shortcuts**:
+  * `Left Click / Drag`: Paint active brush
+  * `Right Click / Drag`: Erase (`'.'`)
+  * `Middle Click / Drag` or `W A S D` / `Arrows`: Pan camera
+  * `Mouse Wheel` (on canvas): Cursor-centered zoom
+  * `1 / 2 / G / S / E / F / M / H`: Quick-select Solid, Air, Grapple, Spawn, Beetle, Buzzfly, Mantis Boss, or Dread Hound Boss
+  * `Ctrl + Z` / `Ctrl + Y`: Undo / Redo (40-step history)
+  * `Ctrl + S`: Save JSON to `levels/<zone_id>.json`
+  * `F1` or `?` (`/`) : Toggle Help modal (kept separate from `H` Dread Hound brush)
 
 ---
 
-## 🎨 3. Tool 2: Standalone Sprite & Animation Inspector (`sprite_inspector.py`)
+## 3. Sprite & Animation Inspector (`sprite_inspector.py`)
 
-A dedicated visual inspector, frame scrubber, and telemetry analyzer for Froggy's 32-bit arcade sprites.
+A 32-bit RGBA sprite, tile, and prop inspector with frame scrubbing, bounding-box telemetry, and live cursor RGBA probing.
 
-### A. PowerShell CLI Commands
+### CLI Commands
+```powershell
+py sprite_inspector.py                    # Launch Inspector GUI
+py sprite_inspector.py --list             # Print table of 48 sequences / 132 frames
+py sprite_inspector.py --dump             # Output full JSON manifest with bboxes
+py sprite_inspector.py --sprite run       # Jump directly to Froggy's Sprint Cycle
+py sprite_inspector.py --sprite shark     # Inspect Demon Shark Boss frames
+py sprite_inspector.py --category bosses  # Open Bosses category
+```
 
-| Action | PowerShell Command | What It Does |
-| :--- | :--- | :--- |
-| **List All Sprites** | `py sprite_inspector.py --list` | Shows all 29 animation sequences, frame counts, native FPS, and categories. |
-| **Dump JSON Manifest** | `py sprite_inspector.py --dump` | Dumps exact bounding boxes, anchor offsets, and file metadata in JSON. |
-| **Inspect Specific Sprite**| `py sprite_inspector.py --sprite froggy_run` | Opens inspector directly focused on Froggy's running cycle. |
-| **Inspect Category** | `py sprite_inspector.py --category bosses` | Opens inspector focused on the 4 Colossus Bosses. |
-| **Launch Studio** | `py sprite_inspector.py` | Opens the full interactive visual studio with navigation tree. |
-
-### B. Visual Inspector Features
-- **Central Viewer Stage**:
-  - Displays high-resolution pixel art with high-contrast checkerboard backdrop.
-  - Zoom levels from 1x up to 16x magnification!
-  - **Bounding Box Overlay `[B]` (Neon Green)**: Shows exact silhouette pixel bounds calculated via `surf.get_bounding_rect()`.
-  - **Anchor Point Crosshair `[A]` (Magenta)**: Shows the bottom-center anchor `(w // 2, h)` where feet touch the ground.
-  - **Center Crosshair `[C]` (Cyan)**: Shows the geometric center `(w // 2, h // 2)`.
-  - **Pixel Grid `[G]`**: Displays thin grid lines between individual pixels at zoom $\ge 4x$.
-  - **Horizontal Flip `[F]`**: Mirrors sprite to verify left vs. right orientation.
-- **Transport Controls**:
-  - `[SPACE]`: Play / Pause real-time animation.
-  - `[ [ ]` / `[ ] ]` or **Left / Right Arrow**: Step backward / forward one frame at a time.
-  - `[ - ]` / `[ + ]`: Adjust playback speed from 1 FPS to 60 FPS (slow-motion analysis).
-- **Filmstrip (Bottom)**:
-  - Displays thumbnail of every frame in the sequence with frame index (`#0`, `#1`, `#2`...).
-  - Click any thumbnail to pause and inspect that frame statically.
-- **Telemetry & Pixel Probe (Right Panel)**:
-  - Frame dimensions (e.g. $32 \times 32$ px).
-  - Silhouette pixel count and transparency percentage.
-  - **Live Cursor Probe**: Hover your mouse over any pixel on the stage to see its relative `(X, Y)` coordinates, exact `RGBA(r, g, b, a)` values, and a live color swatch!
-
-### C. Under the Hood: Why Bottom-Center Anchoring Eliminates Jitter
-In retro game development, characters change height across animations:
-- Froggy Idle: 20 pixels tall (squatting)
-- Froggy Jump: 26 pixels tall (legs extended)
-
-If you anchor from top-left `(0, 0)`, Froggy's feet will bob up and down off the floor by 6 pixels whenever he stops running! By standardizing all frames to uniform $32 \times 32$ bounding boxes and anchoring his feet to `(16, 32)`, his feet stay glued to the ground with zero jitter!
+### Coverage & Features
+* **Complete Asset Catalog (48 sequences / 132 frames)**:
+  * **Player (`player`)**: `idle` (3f), `idle_blink` (`froggy_idle_3.png`), `run` (4f), `jump` (2f), `fall` (2f), `wall_slide` (2f), `tongue` (2f), `swim` (4f), `swing` (2f), `hurt` (1f) — all 23 Froggy player frames.
+  * **Troop Enemies (`enemies`)**: `beetle`, `fly`, `ant`, `spider`, `stink_bug`, `ice_spider`, `piranha`, `angler`, `jelly` (21 frames).
+  * **Colossus Bosses (`bosses`)**: `mantis`, `hound`, `toad`, `falo`, `shark` (24 frames).
+  * **Friendly NPCs (`npcs`)**: `elder` (4f), `shopkeeper` (4f).
+  * **Interactive Tiles (`tiles`)**: `grapple`, `water`, `lava`, `waterfall`, `bubble_vent`, `burrow_rock`, `door`, `boss_door`, `master_key_door`, `metroid_door`.
+  * **Relics & Props (`props`)**: `boots`, `boomerang`, `muhlaser`, `vitality_heart`, `falo_heart`, `key_fragments`, `master_key`, `totem`, `mantis_totem`, `statue`, `flora`, `shrooms`.
+* **Scrollable Explorer Sidebar**: Navigate long lists with mouse wheel over the sidebar or `Up`/`Down`/`PageUp`/`PageDown`/`Home`/`End`.
+* **Orientation-Aware Telemetry**: Press `F` to flip horizontally (`flip_h`); both the stage render, green bounding box (`B`), and live cursor RGBA pixel probe read from the displayed (flipped) surface.
+* **Shortcuts**: `Space` Play/Pause, `Left`/`Right` or `[`/`]` Step frames, `+`/`-` or Wheel Zoom, `B` Bounding Box, `A` Anchor `(width/2, height)`, `C` Center, `G` Pixel Grid, `F` Flip Horizontal.
 
 ---
 
-## 🗺️ 4. Modular World Data & Tile Reference (`world_data.py`)
+## 4. World Map & Connectivity Tool (`map_tool.py`)
 
-All 14 level definitions have been moved out of the 7,000+ line engine into `world_data.py` and `levels/<zone_id>.json`.
+Audits door connections, tile distribution, and Metroidvania progression reachability across all 20 zones.
 
-### A. The 14 World Zones
-
-| Zone String ID | In-Game Title | Biome Theme | Dimensions | Special Features |
-| :--- | :--- | :--- | :--- | :--- |
-| `level_1` | LEVEL 1: LUSH CANOPY TO MANTIS SANCTUM | `canopy` | 116 x 23 | 3-Act showcase level, Elder NPC, Mantis boss |
-| `entrance_hall` | 2. SUNKEN FROG TEMPLE HALL | `temple` | 60 x 23 | Stomping Boots relic, Shopkeeper NPC |
-| `chimney_tower` | 3. VINE CHIMNEY ASCENT | `cavern` | 44 x 25 | Vertical wall-jump chimney, Shadow Spiders |
-| `grapple_cavern` | 4. BIOLUMINESCENT GRAPPLE CAVERN | `cavern` | 69 x 23 | Long-distance grapple swings over swamp pits |
-| `boss_sanctum` | 5. EMPEROR MANTIS SANCTUM | `sanctum` | 44 x 23 | Colossus Boss: 3-phase flying Emperor Mantis |
-| `hound_sanctum` | 5B. THE HOUND'S SANCTUM | `sanctum` | 60 x 23 | Colossus Boss: Dread Hound (wall slam daze) |
-| `toad_colosseum` | 5C. GIGA TOAD'S BRAWLER COLOSSEUM | `sanctum` | 60 x 23 | Colossus Boss: Giga Toad (ground shockwaves) |
-| `victory_chamber` | 6. SACRED LILYPAD SANCTUARY | `canopy` | 44 x 23 | Peaceful victory retreat with golden lilypads |
-| `frost_ascent` | 7. FROST ASCENT TO GLACIAL SUMMIT | `ice` | 60 x 23 | Hypothermia cold drain, Stink Bugs, Ice Spiders |
-| `frost_springs` | 8. STEAMY GLACIAL HOT SPRINGS | `ice` | 60 x 23 | Checkpoint Totem, warm soothing hot springs |
-| `falo_arena` | 9. BLIZZARD PEAK - FALO'S LAIR | `ice` | 60 x 23 | Colossus Boss: Falo Snowman (top hat stomp) |
-| `sunken_grotto` | 10. SUNKEN SUBMARINE GROTTO | `underwater` | 60 x 23 | Oxygen drain, bubble refill vents, lagoons |
-| `volcanic_chasm` | 11. VOLCANIC MAGMA CHASM | `volcanic` | 60 x 23 | Heat rise, molten magma, cold waterfall mist |
-| `sandbox_room` | BUILDER'S SANDBOX | `canopy` | 50 x 23 | Blank creative canvas |
-
-### B. ASCII Tile Legend
-
-| Char | Name | Category | Solid? | Description |
-| :---: | :--- | :--- | :---: | :--- |
-| `#` | Solid Terrain | `terrain` | **Yes** | Autotiled stone, roots & moss blocks. |
-| `.` | Air / Empty | `air` | No | Walkable open space. |
-| `~` | Swamp Water | `hazard` | No | Bioluminescent swamp water (swimmable lagoon). |
-| `v` | Molten Magma | `hazard` | No | Scorching lava pool causing rapid heat rise toward 200%. |
-| `c` | Waterfall Mist | `hazard` | No | Cold waterfall mist cooling Froggy back toward 100%. |
-| `o` | Air Bubble Vent | `hazard` | No | Submarine bubble vent refilling oxygen to 100%. |
-| `G` | Grapple Idol | `mechanic` | No | Golden Frog Idol for tongue whipping & pendulum swinging with `[Y]`. |
-| `S` | Player Spawn | `mechanic` | No | Froggy default entrance spawn point. |
-| `T` | Mantis Totem | `prop` | No | Ancient stone totem warning of the Emperor Mantis Sanctum. |
-| `X` | Checkpoint Totem | `mechanic` | No | Restorative totem that heals HP, resets warmth, and auto-saves. |
-| `e` | Elder NPC | `npc` | No | Elder Tree Frog providing story lore and advice with `[UP]`. |
-| `k` | Shopkeeper NPC | `npc` | No | Village Shopkeeper trading eaten bugs for healing tonics. |
-| `J` | Stomping Boots | `relic` | No | Power-up relic enabling Mario-style enemy crushing. |
-| `R` | Red Boomerang | `relic` | No | Power-up relic giving long-range curved projectile attacks with `[R]`. |
-| `E` | Moss Beetle | `enemy` | No | Ground troop beetle (stun with tongue or boots, then swallow!). |
-| `F` | Neon Buzzfly | `enemy` | No | Airborne sine-wave flying bug (instant swallow with tongue!). |
-| `N` | Soldier Ant | `enemy` | No | Fast aggressive charging ground ant. |
-| `W` | Shadow Spider | `enemy` | No | Ceiling spider that ambushes and drops down on thread. |
-| `b` | Stink Bug | `enemy` | No | Patrolling stink bug that bursts into poison gas when stomped. |
-| `w` | Ice Wolf Spider | `enemy` | No | Camouflaged glacial spider with explosive ambush leap. |
-| `M` | Emperor Mantis | `boss` | No | Colossal 3-Phase flying boss with crescent scythe blades. |
-| `H` | The Dread Hound | `boss` | No | Cybernetic canine colossus anchored to cavern wall. |
-| `Q` | Giga Toad | `boss` | No | Heavyweight brawler boss with seismic shockwaves. |
-| `O` | Falo Snowman | `boss` | No | Blizzard summit boss throwing snowballs and carrot boomerang. |
-| `A-Z` | Door Portals | `door` | No | Interconnected door portals linking Metroidvania rooms. |
+```powershell
+py map_tool.py                # Full world summary + ASCII world graph
+py map_tool.py map            # Print ASCII Metroidvania progression map
+py map_tool.py doors          # Inspect every DoorPortal link across rooms
+py map_tool.py reach          # BFS reachability audit from level_1
+py map_tool.py room <id>      # Inspect grid dimensions, doors & entities for one zone
+py map_tool.py sync           # Check consistency between levels/*.json and defaults
+```
 
 ---
 
-## 💡 5. Prompting Precise Level Edits (For Nephew & AI)
+## 5. Procedural Generators & Verification Tests
 
-Because levels are now completely decoupled from the 7,000+ line engine, you no longer need to load the entire engine into context to customize a room!
-
-### How to Prompt for Level Changes
-When asking an AI (or editing yourself):
-1. **Specify the exact Zone ID**: (e.g. `entrance_hall` or `frost_springs`).
-2. **Specify the modification target**:
-   - *"In `entrance_hall`, add two Golden Grapple Idols ('G') above the lagoon at row 8, cols 24 and 36."*
-   - *"In `volcanic_chasm`, add a cold waterfall column ('c') at cols 28-30 from row 2 down to row 18."*
-   - *"Create a new zone called `crystal_mines` with theme `ice` and link Door D from `frost_ascent`."*
-3. **Inspect or Edit via Tools**:
-   ```powershell
-   py level_studio.py --info entrance_hall
-   py level_studio.py --zone entrance_hall
-   ```
-4. **Persist and Play**:
-   Changes saved via the tool or written to `levels/<zone_id>.json` take effect immediately in the game!
-
----
-
-## ⚡ 6. Performance Verification & Zero-Regression Benchmarks
-
-To ensure modularizing the code did not introduce any performance drops or frame stuttering:
-- **Benchmark Suite**: `py test_tools_and_modularity.py`
-- **Result**:
-  - **180 Full Simulation Frames**: 0.249 seconds elapsed.
-  - **Effective Rate**: **723.9 FPS** (Target: 60.0 FPS — over 12x headroom!).
-  - **Frame Time**: **1.381 ms** per frame (well under the 16.6 ms 60 FPS budget).
-- **All 5 Test Suites Passing 100%**:
-  - `test_tools_and_modularity.py` : PASS (Registry, CLI, Bounding Boxes, Benchmark)
-  - `test_v6_features.py`          : PASS (16-bit WAV bank, Biomes, NPCs, Boss Rush)
-  - `test_v5_full.py`              : PASS (Thermoregulation, Bosses, Save persistence)
-  - `test_upgrades.py`             : PASS (32-bit sprites, Colossus combat, Damping)
-  - `test_gameplay_frames.py`      : PASS (Continuous 60-frame headless gameplay simulation)
+* **Asset Pipeline**: `generate_assets.py`, `sprite_studio.py`, `generate_hound_and_powerup_assets.py`, `process_v7_assets.py`, `midi_writer.py`.
+* **Verification Suite**:
+  ```powershell
+  py test_tools_and_modularity.py   # Verifies world_data, sprite_inspector & level_studio
+  py test_v9_features.py
+  py test_v10_systematic_fixes.py
+  py test_v11_playtest.py           # End-to-end 20-zone traversal, combat, UI & save/load playtest
+  ```
